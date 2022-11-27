@@ -6,6 +6,8 @@ import torchvision as tv
 import os
 
 
+
+
 def load_data(input_dir, is_label=False, img_size=400):
     """
     For the observation :
@@ -29,6 +31,7 @@ def load_data(input_dir, is_label=False, img_size=400):
     """
     filenames = sorted([name for name in os.listdir(input_dir)])
     n_image = len(filenames)
+    print(filenames)
 
     if is_label:
         n_channel = 1
@@ -37,6 +40,7 @@ def load_data(input_dir, is_label=False, img_size=400):
 
     tensor = torch.zeros(n_image, n_channel, img_size, img_size, dtype=torch.uint8)
     for i, filename in enumerate(filenames):
+        if is_label:
+            print(filename)
         tensor[i] = tv.io.read_image(os.path.join(input_dir, filename))
-
-    return tensor
+        return tensor

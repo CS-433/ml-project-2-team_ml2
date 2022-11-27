@@ -9,6 +9,7 @@ from load_data import *
 input_dir_obs = "Data/training_processed/images"
 input_dir_label = "Data/training_processed/groundtruth"
 obs = load_data(input_dir_obs, is_label=False, img_size=400)
+print("test")
 label = load_data(input_dir_label, is_label=True, img_size=400)
 
 # Initialize neural network
