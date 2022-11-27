@@ -5,7 +5,7 @@
 
 	- Rotate / Flip (no resizing, less computation compared to rotation)
 	- Crop ?
-	- Lower resolution (max / mean pool)  --> Lower compuation time
+	- Lower resolution (max / mean pool)  --> Lower computation time
 	
 	- Noise (Gaussian, shot, impulse) ?
 	- Blur (Gaussian) ?
