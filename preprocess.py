@@ -16,8 +16,8 @@ output_dir_obs = "Data/training_processed/images/"
 output_dir_label = "Data/training_processed/groundtruth/"
 
 # Load data
-obs = load_data(input_dir_obs, is_label=False, img_size=400)
-label = load_data(input_dir_label, is_label=True, img_size=400)
+obs = load_data(input_dir_obs, img_size=400)
+label = load_data(input_dir_label, img_size=400)
 
 # Labels to value 0 or 255 (no value in between)
 label = label >= 128
