@@ -41,6 +41,8 @@ def load_data(input_dir, is_label=False, img_size=400):
     tensor = torch.zeros(n_image, n_channel, img_size, img_size, dtype=torch.uint8)
     for i, filename in enumerate(filenames):
         if is_label:
-            print(filename)
+            print(tensor.shape)
+            test = tv.io.read_image(os.path.join(input_dir, filename))
+            print(test.shape)
         tensor[i] = tv.io.read_image(os.path.join(input_dir, filename))
         return tensor
