@@ -7,6 +7,7 @@ from load_data import *
 from torch.utils.data import DataLoader
 import sys
 sys.path.append('./src/Modeles')
+sys
 from UNet import *
 # Load data
 print("Loading data...")
@@ -17,8 +18,8 @@ label = load_data(input_dir_label, img_size=400)
 
 
 def get_dataloaders(split):
-    data_dataset = Alpine(transforms=transforms_train, split=split)
-
+    data_dataset = Roads()
+    print(f"Data_set size : {len(data_dataset)}")
     # data loader
     data_loader = DataLoader(data_dataset,
                              batch_size=4,
