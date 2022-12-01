@@ -47,20 +47,26 @@ def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, dev
     lr_history = []
     for batch_idx, (data, target) in enumerate(train_loader):
         target = target.type(torch.LongTensor)  # avoid an error idk why?
+        data = data.float()
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
-        # print(output.shape)
-        # print(target.shape)
-        output = output.flatten(2)
-        target = target.flatten(-3)
+        '''print("Original shape of output and target:")
+        print(output.shape)
+        print(target.shape)'''
+        output = output.flatten(2).float()  #[batch,class*400*400]
+        target = target.flatten(2).float()  #[batch,class*400*400]
+        '''print("Shape after flatten of output and target:")
+        print(output.shape)
+        print(target.shape)'''
 
         loss = criterion(output, target)
         loss.backward()
         optimizer.step()
         scheduler.step()
 
-        predictions = output.argmax(1).cpu().detach().numpy()
+        #predictions = output.argmax(1).cpu().detach().numpy()
+        predictions = output.cpu().detach().numpy()
         ground_truth = target.cpu().detach().numpy()
 
         accuracy_float = (predictions == ground_truth).mean()
@@ -87,6 +93,7 @@ def validate(model, device, val_loader, criterion):
     accuracy_float = 0
     for data, target in val_loader:
         target = target.type(torch.LongTensor)  # avoid an error idk why?
+        data = data.float()
         data, target = data.to(device), target.to(device)
         output = model(data)
         output = output.flatten(2)  # [batch,class,200*200]
@@ -118,7 +125,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda"):
     val_loader = get_dataloaders("val")[1]
 
     # ===== Model, Optimizer and Criterion =====
-    model = UNet(3, 8)
+    model = UNet(3, 3)
     model = model.to(device=device)
     optimizer = torch.optim.AdamW(model.parameters(), **optimizer_kwargs)
     criterion = torch.nn.functional.cross_entropy
@@ -145,7 +152,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda"):
         val_loss_history.append(val_loss)
         val_acc_history.append(val_acc)
 
-    return (sum(train_acc) / len(train_acc), val_acc, model)
+    return sum(train_acc) / len(train_acc), val_acc_history, model
 
 # U_net
 
