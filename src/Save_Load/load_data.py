@@ -25,15 +25,14 @@ class Roads(Dataset):
             # Label to binary, unique channel
             label = label[:, 1] > 0
             label = label[:, None, :, :]  # Ajoute la dim C = 1
-
             self.data = obs, label
+
         if split == 'test':
             input_dir_test = "Data/test_set_images"
             up_lefts, up_rights, down_lefts, down_rights = load_test_data(input_dir_test)
             test = torch.cat((up_lefts, up_rights, down_lefts, down_rights))
             n_image = len(test)
-            n_channel = 3
-            label = torch.zeros(n_image, n_channel, img_size, img_size, dtype=torch.uint8)  # Bonne initialization ?
+            label = torch.zeros(n_image, 1, img_size, img_size, dtype=torch.uint8)  # Bonne initialization ?
 
             self.data = test, label
 
