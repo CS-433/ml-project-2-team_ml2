@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+import numpy as np
 # Import necessary libraries
 import torch
 from torch.utils.data import Dataset
@@ -10,22 +10,25 @@ import os
 
 class Roads(Dataset):
     # mapping between label class names and indices
-    def __init__(self, split='train', img_size=400):
+    def __init__(self, split='train', img_size=400,frac_data='1.0'):
 
         # prepare data
         self.img_size = img_size
         # get images with correct index according to dataset split
 
-        if split == 'train':
+        if split == 'train' or split == 'val':
             input_dir_obs = "Data/training_processed/images"
             input_dir_label = "Data/training_processed/groundtruth"
-            obs = load_data(input_dir_obs, img_size=400)
-            label = load_data(input_dir_label, img_size=400)
+            obs = load_data(input_dir_obs, img_size, split, frac_data)
+            label = load_data(input_dir_label, img_size, split, frac_data)
 
             # Label to binary, unique channel
             label = label[:, 1] > 0
             label = label[:, None, :, :]  # Ajoute la dim C = 1
-            self.data = obs, label
+            self.data = []
+            for i in range(label.shape[0]):
+                self.data.append((obs[i,:],label[i,:]))
+            #self.data = obs, label
 
         if split == 'test':
             input_dir_test = "Data/test_set_images"
@@ -37,14 +40,14 @@ class Roads(Dataset):
             self.data = test, label
 
     def __len__(self):
-        return len(self.data[0])
+        return len(self.data)
 
     def __getitem__(self, x):
         img, label = self.data[x]
         return img, label
 
 
-def load_data(input_dir, img_size=400):
+def load_data(input_dir, img_size=400,split = 'train', frac_data = '1.0'):
     """
     For the observation :
         Convert all the images from the directory into a tensor of size (N, C, H, W)
@@ -65,9 +68,22 @@ def load_data(input_dir, img_size=400):
 
     """
     filenames = sorted([name for name in os.listdir(input_dir)])
-    n_image = len(filenames)
-    n_channel = 3
 
+    if split == 'train':
+        n_image = np.floor(0.8*len(filenames))
+    elif split == 'val':
+        n_image = len(filenames) - np.floor(0.8 * len(filenames))
+    else:
+        raise TypeError("Split parameter not recognised!")
+    n_image = int(n_image*frac_data)
+
+    if split == 'train':
+        filenames = filenames[0:n_image]
+    elif split == 'val':
+        filenames = filenames[-n_image:]
+    n_channel = 3
+    print(len(filenames))
+    print(n_image)
     tensor = torch.zeros(n_image, n_channel, img_size, img_size, dtype=torch.uint8)
     for i, filename in enumerate(filenames):
         tensor[i] = tv.io.read_image(os.path.join(input_dir, filename))
