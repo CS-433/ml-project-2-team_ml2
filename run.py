@@ -2,21 +2,12 @@
 
 
 # Import libraries
-# TODO Importer depuis src... @Anthony J'ai pas trouvé comment faire, du coup j'ai déplacé les fichiers .py dans root
-from load_data import *
+from src.Save_Load.load_data import *
+from src.Modeles.UNet import *
 from torch.utils.data import DataLoader
-import sys
-sys.path.append('./src/Modeles')
-sys
-from UNet import *
+
+
 # Load data
-print("Loading data...")
-input_dir_obs = "Data/training_processed/images"
-input_dir_label = "Data/training_processed/groundtruth"
-obs = load_data(input_dir_obs, img_size=400)
-label = load_data(input_dir_label, img_size=400)
-
-
 def get_dataloaders(split):
     data_dataset = Roads()
     print(f"Data_set size : {len(data_dataset)}")
@@ -27,16 +18,16 @@ def get_dataloaders(split):
                              num_workers=0,
                              pin_memory=False)
     return data_dataset, data_loader
-# Label to binary, unique channel
-label = label[:, 1] > 0
-label = label[:, None, :, :]  # Ajoute la dim C = 1
+
+
 print("Data Loaded!")
 
-#Check for gpu availability:
+# Check for gpu availability:
 if torch.cuda.is_available():
     print("CUDA IS AVAILABLE!")
 else:
     print("WARNING: CUDA NOT AVAILABLE!")
+
 
 # Initialize neural network
 
@@ -54,8 +45,8 @@ def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, dev
         '''print("Original shape of output and target:")
         print(output.shape)
         print(target.shape)'''
-        output = output.flatten(2).float()  #[batch,class*400*400]
-        target = target.flatten(2).float()  #[batch,class*400*400]
+        output = output.flatten(2).float()  # [batch,class*400*400]
+        target = target.flatten(2).float()  # [batch,class*400*400]
         '''print("Shape after flatten of output and target:")
         print(output.shape)
         print(target.shape)'''
@@ -65,7 +56,7 @@ def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, dev
         optimizer.step()
         scheduler.step()
 
-        #predictions = output.argmax(1).cpu().detach().numpy()
+        # predictions = output.argmax(1).cpu().detach().numpy()
         predictions = output.cpu().detach().numpy()
         ground_truth = target.cpu().detach().numpy()
 
@@ -154,6 +145,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda"):
 
     return sum(train_acc) / len(train_acc), val_acc_history, model
 
+
 # U_net
 
 # Train neural network
@@ -168,7 +160,7 @@ optimizer_kwargs = dict(
     weight_decay=1e-2,
 )
 
-train_acc,val_acc,model = run_training(
+train_acc, val_acc, model = run_training(
     model_factory=UNet,
     num_epochs=num_epochs,
     optimizer_kwargs=optimizer_kwargs,

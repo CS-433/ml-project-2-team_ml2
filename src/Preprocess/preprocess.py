@@ -6,14 +6,14 @@ the processed data into directory Data/training_processed/
 """
 
 # Import necessary libraries
-from load_data import *
-from save_data import *
+from src.Save_Load.load_data import *
+from src.Save_Load.save_data import *
 
 # Paths
-input_dir_obs = "Data/training/images/"
-input_dir_label = "Data/training/groundtruth/"
-output_dir_obs = "Data/training_processed/images/"
-output_dir_label = "Data/training_processed/groundtruth/"
+input_dir_obs = "../../Data/training/images/"
+input_dir_label = "../../Data/training/groundtruth/"
+output_dir_obs = "../../Data/training_processed/images/"
+output_dir_label = "../../Data/training_processed/groundtruth/"
 
 # Load data
 obs = load_data(input_dir_obs, img_size=400)
