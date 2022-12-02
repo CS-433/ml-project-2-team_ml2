@@ -3,10 +3,13 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 from src.Modeles.ResUNet import *
+from src.Modeles.UNet import *
+from src.Save_Load.save_data import *
+
+
 # Load data
-def get_dataloaders(split,frac_data):
+def get_dataloaders(split, frac_data):
     data_dataset = Roads(split=split, frac_data=frac_data)
-    #print(f"Data_set size : {len(data_dataset)}")
     # data loader
     data_loader = DataLoader(data_dataset,
                              batch_size=3,
@@ -14,8 +17,11 @@ def get_dataloaders(split,frac_data):
                              num_workers=0,
                              pin_memory=False)
     return data_dataset, data_loader
+
+
 # Initialize neural network
 
+# Training of the model by iterating on the epochs
 def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, device):
     model.train()
     loss_history = []
@@ -32,11 +38,7 @@ def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, dev
         print(target.shape)'''
         output = output.flatten().float()  # [batch*400*400]
         target = target.flatten().float()  # [batch*400*400]
-        '''print(f"Output: min = {torch.min(output)}; max = {torch.max(output)}")
-        print(f"Target: min = {torch.min(target)}; max = {torch.max(target)}")
-        print(torch.mean(output))
-        print(torch.mean(target))
-        print("Shape after flatten of output and target:")
+        '''print("Shape after flatten of output and target:")
         print(output.shape)
         print(target.shape)'''
 
@@ -62,54 +64,73 @@ def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, dev
                 f"batch_acc={accuracy_float:0.3f} "
                 f"lr={scheduler.get_last_lr()[0]:0.3e} "
             )
-
     return loss_history, accuracy_history, lr_history
 
 
-@torch.no_grad()
-def validate(model, device, val_loader, criterion):
-    model.eval()  # Important: eval mode (affects dropout, batch norm etc)
-    test_loss = 0
-    accuracy_float = 0
-    for data, target in val_loader:
-        target = target.type(torch.LongTensor)  # avoid an error idk why?
-        data = data.float()
-        data, target = data.to(device), target.to(device)
-        output = model(data)
-        output = output.flatten().float()  # [batch,class,200*200]
-        target = target.flatten().float()  # [batch,200*200] expected for criterion argument (class per pixel)
-        """print(output.shape)
-        print(target.shape)"""
-        test_loss += criterion(output, target)
+# Evaluation of the dataset loaded on "val_loader" with the model in "eval" mode:
+def validate(model, device, val_loader, criterion,SaveResults = True):
+    with torch.no_grad():
+        model.eval()  # Important: eval mode (affects dropout, batch norm etc)
+        test_loss = 0
+        accuracy_float = 0
+        targets = torch.zeros((1,1,400,400))
+        outputs = torch.zeros((1,1,400,400))
+        for data, target in val_loader:  # run the
+            target = target.type(torch.LongTensor)  # avoid an error idk why?
+            data = data.float()
+            data, target = data.to(device), target.to(device)
+            output = model(data)    # tensor[batch,1,400,400]
 
-        # predictions = output.argmax(1).cpu().detach().numpy()
-        predictions = output.cpu().detach().numpy()
-        ground_truth = target.cpu().detach().numpy()
 
-        accuracy_float += (predictions == ground_truth).mean()
+            # apply treshold to binaries the output
+            treshold = 0.5
+            output[output < treshold] = 0
+            output[output > treshold] = 1
 
-    test_loss /= len(val_loader)
+            if SaveResults:
+                targets = torch.cat((targets,target.cpu()),dim=0)
+                outputs = torch.cat((outputs,output.cpu()),dim=0)
+            output = output.flatten().float()  # [batch*200*200]
+            target = target.flatten().float()  # [batch*200*200]
+            '''print(output.shape)
+            print(target.shape)'''
+            test_loss += criterion(output, target)
 
-    print(
-        "Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)".format(
-            test_loss,
-            accuracy_float,
-            len(val_loader),
-            100.0 * accuracy_float / len(val_loader),
+            # predictions = output.argmax(1).cpu().detach().numpy()
+            predictions = output.cpu().detach().numpy()
+            ground_truth = target.cpu().detach().numpy()
+
+            accuracy_float += (predictions == ground_truth).mean()
+
+        test_loss /= len(val_loader)
+
+        # Loading of output into folder "Results/Prediction_imgs" :
+        if SaveResults:
+            save_data(outputs, "Results/Prediction_imgs/", target=False)
+            save_data(targets, "Results/Prediction_imgs/", target=True)
+
+        print(
+            "Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)".format(
+                test_loss,
+                accuracy_float,
+                len(val_loader),
+                100.0 * accuracy_float / len(val_loader),
+            )
         )
-    )
-    return test_loss, accuracy_float / len(val_loader)
+        model.train()  # so that the model can be trained again after evaluation
+        return test_loss, accuracy_float / len(val_loader)
 
 
 def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", frac_data='1.0'):
     # ===== Data Loading =====
-    train_loader = get_dataloaders("train", frac_data)[1]
-    val_loader = get_dataloaders("val", frac_data)[1]
-    print(f"Data_set size : {len(train_loader.dataset)}")
-    print(f"Data_set size : {len(val_loader.dataset)}")
+    train_dataset, train_loader = get_dataloaders("train", frac_data)
+    val_dataset, val_loader = get_dataloaders("val", frac_data)
+    print(f"Training data_set size : {len(train_dataset)}")
+    print(f"Validation data_set size : {len(val_dataset)}")
+    print("DATASETS LOADED! ")
 
     # ===== Model, Optimizer and Criterion =====
-    model = resunet(3, 1)
+    model = UNet(3,1)
     model = model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), **optimizer_kwargs)
     criterion = torch.nn.functional.cross_entropy
@@ -125,6 +146,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
     val_loss_history = []
     val_acc_history = []
     for epoch in range(1, num_epochs + 1):
+        # Training one epoch
         train_loss, train_acc, lrs = train_epoch(
             model, optimizer, scheduler, criterion, train_loader, epoch, device
         )
@@ -132,9 +154,9 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
         train_acc_history.extend(train_acc)
         lr_history.extend(lrs)
 
+        # Run the validation data through the model
         val_loss, val_acc = validate(model, device, val_loader, criterion)
         val_loss_history.append(val_loss)
         val_acc_history.append(val_acc)
 
-    return sum(train_acc) / len(train_acc), val_acc_history, model
-
+    return train_acc_history, val_acc_history, model

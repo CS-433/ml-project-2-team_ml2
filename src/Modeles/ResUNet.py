@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+
 class batchnorm_relu(nn.Module):
     def __init__(self, in_c):
         super().__init__()
@@ -11,7 +12,6 @@ class batchnorm_relu(nn.Module):
         x = self.bn(inputs)
         x = self.relu(x)
         return x
-
 
 class residual_block(nn.Module):
     def __init__(self, in_c, out_c, stride=1):
@@ -36,13 +36,12 @@ class residual_block(nn.Module):
         skip = x + s
         return skip
 
-
 class decoder_block(nn.Module):
     def __init__(self, in_c, out_c):
         super().__init__()
 
         self.upsample = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
-        self.r = residual_block(in_c + out_c, out_c)
+        self.r = residual_block(in_c+out_c, out_c)
 
     def forward(self, inputs, skip):
         x = self.upsample(inputs)
@@ -50,15 +49,12 @@ class decoder_block(nn.Module):
         x = self.r(x)
         return x
 
-
 class resunet(nn.Module):
-    def __init__(self, n_channels, n_classes):
+    def __init__(self):
         super().__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
 
         """ Encoder 1 """
-        self.c11 = nn.Conv2d(n_channels, 64, kernel_size=3, padding=1)
+        self.c11 = nn.Conv2d(3, 64, kernel_size=3, padding=1)
         self.br1 = batchnorm_relu(64)
         self.c12 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
         self.c13 = nn.Conv2d(3, 64, kernel_size=1, padding=0)
@@ -76,7 +72,7 @@ class resunet(nn.Module):
         self.d3 = decoder_block(128, 64)
 
         """ Output """
-        self.output = nn.Conv2d(64, n_classes, kernel_size=1, padding=0)
+        self.output = nn.Conv2d(64, 1, kernel_size=1, padding=0)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, inputs):

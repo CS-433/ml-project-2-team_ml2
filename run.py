@@ -7,18 +7,16 @@ from src.training import *
 from src.Modeles.ResUNet import *
 
 
-print("Data Loaded!")
-
 # Check for gpu availability:
 if torch.cuda.is_available():
     print("CUDA IS AVAILABLE!")
 else:
     print("WARNING: CUDA NOT AVAILABLE!")
 
-# Train neural network
+# ===== TRAINING NEURAL NETWORK =====
 torch.cuda.empty_cache()
 image_size = 400
-model_factory = resunet
+model_factory = UNet
 num_epochs = 5
 frac_data = 1.0
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -35,4 +33,5 @@ train_acc, val_acc, model = run_training(
     device=device,
     frac_data=frac_data
 )
-# Make-save prediction
+
+# ===== MAKE-SAVE PREDICTION =====

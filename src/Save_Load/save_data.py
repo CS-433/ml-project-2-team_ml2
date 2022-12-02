@@ -4,11 +4,14 @@
 import torchvision as tv
 
 
-def save_data(tensor, output_dir):
+def save_data(tensor, output_dir, target=True):
     """
     Saves the tensor as png files in the output_dir
     """
     tensor = tensor.float()
     for i, t in enumerate(tensor):
-        filename = output_dir + str(i+1) + ".png"
+        if target:
+            filename = output_dir + str(i+1) + "_target.png"
+        else:
+            filename = output_dir + str(i + 1) + "_output.png"
         tv.utils.save_image(t, filename)

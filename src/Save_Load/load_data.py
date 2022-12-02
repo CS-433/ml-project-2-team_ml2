@@ -15,10 +15,10 @@ class Roads(Dataset):
         # prepare data
         self.img_size = img_size
         # get images with correct index according to dataset split
-
         if split == 'train' or split == 'val':
             input_dir_obs = "Data/training_processed/images"
             input_dir_label = "Data/training_processed/groundtruth"
+            # Load data from files:
             obs = load_data(input_dir_obs, img_size, split, frac_data)
             label = load_data(input_dir_label, img_size, split, frac_data)
 
@@ -27,8 +27,7 @@ class Roads(Dataset):
             label = label[:, None, :, :]  # Ajoute la dim C = 1
             self.data = []
             for i in range(label.shape[0]):
-                self.data.append((obs[i,:],label[i,:]))
-            #self.data = obs, label
+                self.data.append((obs[i,:], label[i,:]))
 
         if split == 'test':
             input_dir_test = "Data/test_set_images"
@@ -47,7 +46,7 @@ class Roads(Dataset):
         return img, label
 
 
-def load_data(input_dir, img_size=400,split = 'train', frac_data = '1.0'):
+def load_data(input_dir, img_size=400, split='train', frac_data='1.0'):
     """
     For the observation :
         Convert all the images from the directory into a tensor of size (N, C, H, W)
@@ -69,6 +68,7 @@ def load_data(input_dir, img_size=400,split = 'train', frac_data = '1.0'):
     """
     filenames = sorted([name for name in os.listdir(input_dir)])
 
+    # ===== DEFINITION OF NUMBER OF IMAGES TO IMPORT =====
     if split == 'train':
         n_image = np.floor(0.8*len(filenames))
     elif split == 'val':
@@ -77,13 +77,14 @@ def load_data(input_dir, img_size=400,split = 'train', frac_data = '1.0'):
         raise TypeError("Split parameter not recognised!")
     n_image = int(n_image*frac_data)
 
+    # ===== SELECTION OF THE FILE NAMES TO IMPORT =====
     if split == 'train':
         filenames = filenames[0:n_image]
     elif split == 'val':
         filenames = filenames[-n_image:]
+
+    # ===== IMPORTATION OF THE IMAGES =====
     n_channel = 3
-    print(len(filenames))
-    print(n_image)
     tensor = torch.zeros(n_image, n_channel, img_size, img_size, dtype=torch.uint8)
     for i, filename in enumerate(filenames):
         tensor[i] = tv.io.read_image(os.path.join(input_dir, filename))
