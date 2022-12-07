@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 from torchvision.transforms import FiveCrop
 import torchvision as tv
 import os
+import matplotlib.image as mpimg
 
 
 class Roads(Dataset):
@@ -123,3 +124,28 @@ def load_test_data(rootdir, img_size=400):
         down_rights[i] = down_right
 
     return up_lefts, up_rights, down_lefts, down_rights
+
+
+def load_test_data_2(test_dir):  # CHECKED
+    test_names = os.listdir(test_dir)
+
+    prefixes = ('.')
+    for dir_ in test_names[:]:
+        if dir_.startswith(prefixes):
+            test_names.remove(dir_)
+    num_test = len(test_names)
+
+    # get data permutation
+    order = [int(test_names[i].split("_")[1]) for i in range(num_test)]
+    p = np.argsort(order)
+    n_channel = 3
+    img_size = 608
+    tensor = torch.zeros(50, n_channel, img_size, img_size, dtype=torch.uint8)
+    for i, filename in enumerate(test_names):
+        tensor[i] = tv.io.read_image(os.path.join(test_dir, test_names[i], test_names[i]) + ".png")
+
+    return tensor
+
+def load_image(infilename):
+    data = mpimg.imread(infilename)
+    return data

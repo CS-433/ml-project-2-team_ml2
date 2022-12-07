@@ -48,7 +48,7 @@ def load_train_labels_augmented(): #CHECKED
     return np.asarray(gt_imgs)
     
     
-def load_test_data(): #CHECKED
+def load_test_data(test_dir): #CHECKED
     test_dir = TEST_IMG_DIR
     test_names = os.listdir(test_dir)
     
