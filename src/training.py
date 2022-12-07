@@ -5,6 +5,8 @@ from torch.utils.data import DataLoader
 from src.Modeles.ResUNet import *
 from src.Modeles.UNet import *
 from src.Save_Load.save_data import *
+from src.Submission.mask_to_submission import *
+import matplotlib.pyplot as plt
 
 
 # Load data
@@ -160,3 +162,27 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
         val_acc_history.append(val_acc)
 
     return train_acc_history, val_acc_history, model
+
+def get_prediction(model):
+    device = torch.device('cpu' if torch.cuda.is_available() else 'gpu')
+    test_imgs = load_test_data_2("Data/test_set_images")
+    inputs = test_imgs.to(device)  # You can move your input to gpu, torch defaults to cpu
+
+    # Run forward pass
+    with torch.no_grad():
+        model.eval()
+        data = inputs.float()
+        data = data.to(device)
+        preds = model(data)
+
+
+    # Create images for submission
+    for i in range(1, 51):
+        plt.imsave('Predictions/satImage_' + '%.3d' % i + '.png', preds[i - 1].squeeze(), cmap=cm.gray)
+    submission_filename = 'final_submission.csv'
+    image_filenames = []
+    for i in range(1, 51):
+        image_filename = 'Predictions/satImage_' + '%.3d' % i + '.png'
+        print(image_filename)
+        image_filenames.append(image_filename)
+    masks_to_submission(submission_filename, *image_filenames)
