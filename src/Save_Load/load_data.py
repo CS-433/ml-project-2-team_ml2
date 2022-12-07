@@ -94,14 +94,14 @@ def load_data(input_dir, img_size=400, split='train', frac_data='1.0'):
 
 def load_test_data(rootdir, img_size=400):
     """
-    Returns 4 tensors of images of size (N x C x H x W)
+    Returns a tensor of images of size ( 4N x C x H x W) from the rootdir of the test_set_images
 
     with H and W = 400
                 C = 3
                 N = number of test images
 
 
-    The 4 tensor are for the 4 different parts of the test image (up_left, up_right, down_left, down_right)
+    The tensor containes 4 different parts of each test image (up_left, up_right, down_left, down_right)
     """
 
     dirs = [os.path.join(rootdir, file) for file in os.listdir(rootdir)]
@@ -109,22 +109,49 @@ def load_test_data(rootdir, img_size=400):
     n_image = len(dirs)
     n_channel = 3
 
-    up_lefts = torch.zeros(n_image, n_channel, img_size, img_size, dtype=torch.uint8)
-    up_rights = torch.zeros(n_image, n_channel, img_size, img_size, dtype=torch.uint8)
-    down_lefts = torch.zeros(n_image, n_channel, img_size, img_size, dtype=torch.uint8)
-    down_rights = torch.zeros(n_image, n_channel, img_size, img_size, dtype=torch.uint8)
+    test_tensor = torch.zeros(4*n_image, n_channel, img_size, img_size, dtype=torch.uint8)
+    index = 0
 
     for i, d in enumerate(dirs):
         image_test = load_data(d, img_size=608)
         transform = FiveCrop(img_size)
         up_left, up_right, down_left, down_right, _ = transform(image_test)
-        up_lefts[i] = up_left
-        up_rights[i] = up_right
-        down_lefts[i] = down_left
-        down_rights[i] = down_right
 
-    return up_lefts, up_rights, down_lefts, down_rights
+        test_tensor[index] = up_left
+        index += 1
+        test_tensor[index] = up_right
+        index += 1
+        test_tensor[index] = down_left
+        index += 1
+        test_tensor[index] = down_right
+        index += 1
 
+    return test_tensor
+
+def fuse_four_corners_labels(four_corners_labels, in_size=400, out_size=608):
+
+    assert out_size <= 2 * in_size
+
+    n_corners = four_corners_labels.size(dim=0)
+    assert n_corners % 4 == 0
+    n_images = n_corners//4
+
+    n_channel = 1
+
+    whole_labels = torch.zeros(n_images, n_channel, out_size, out_size, dtype=torch.bool)
+    for i in range(n_images):
+        index = i*4
+        up_left = four_corners_labels[index]
+        up_right = four_corners_labels[index+1]
+        low_left = four_corners_labels[index+2]
+        low_right = four_corners_labels[index+3]
+
+        whole_labels[i, n_channel, 0:in_size, 0:in_size] = up_left
+        whole_labels[i, n_channel, 0:in_size, out_size-in_size:out_size] = up_right
+        whole_labels[i, n_channel, out_size-in_size:out_size, 0:in_size] = low_left
+        whole_labels[i, n_channel, out_size-in_size:out_size, out_size-in_size:out_size] = low_right
+
+    return whole_labels
 
 def load_test_data_2(test_dir):  # CHECKED
     test_names = os.listdir(test_dir)

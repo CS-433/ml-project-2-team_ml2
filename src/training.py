@@ -70,19 +70,18 @@ def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, dev
 
 
 # Evaluation of the dataset loaded on "val_loader" with the model in "eval" mode:
-def validate(model, device, val_loader, criterion,SaveResults = True):
+def validate(model, device, val_loader, criterion, SaveResults=True):
     with torch.no_grad():
         model.eval()  # Important: eval mode (affects dropout, batch norm etc)
         test_loss = 0
         accuracy_float = 0
-        targets = torch.zeros((1,1,400,400))
-        outputs = torch.zeros((1,1,400,400))
+        targets = torch.zeros((1, 1, 400, 400))
+        outputs = torch.zeros((1, 1, 400, 400))
         for data, target in val_loader:  # run the
             target = target.type(torch.LongTensor)  # avoid an error idk why?
             data = data.float()
             data, target = data.to(device), target.to(device)
-            output = model(data)    # tensor[batch,1,400,400]
-
+            output = model(data)  # tensor[batch,1,400,400]
 
             # apply treshold to binaries the output
             treshold = 0.5
@@ -90,8 +89,8 @@ def validate(model, device, val_loader, criterion,SaveResults = True):
             output[output > treshold] = 1
 
             if SaveResults:
-                targets = torch.cat((targets,target.cpu()),dim=0)
-                outputs = torch.cat((outputs,output.cpu()),dim=0)
+                targets = torch.cat((targets, target.cpu()), dim=0)
+                outputs = torch.cat((outputs, output.cpu()), dim=0)
             output = output.flatten().float()  # [batch*200*200]
             target = target.flatten().float()  # [batch*200*200]
             '''print(output.shape)
@@ -132,7 +131,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
     print("DATASETS LOADED! ")
 
     # ===== Model, Optimizer and Criterion =====
-    model = UNet(3,1)
+    model = UNet(3, 1)
     model = model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), **optimizer_kwargs)
     criterion = torch.nn.functional.cross_entropy
@@ -163,10 +162,11 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
 
     return train_acc_history, val_acc_history, model
 
+
 def get_prediction(model):
     device = torch.device('cpu' if torch.cuda.is_available() else 'gpu')
-    test_imgs = load_test_data_2("Data/test_set_images")
-    inputs = test_imgs.to(device)  # You can move your input to gpu, torch defaults to cpu
+    test_imags = load_test_data("Data/test_set_images")
+    inputs = test_imags.to(device)  # You can move your input to gpu, torch defaults to cpu
 
     # Run forward pass
     with torch.no_grad():
@@ -175,14 +175,18 @@ def get_prediction(model):
         data = data.to(device)
         preds = model(data)
 
-
+    # Convert from 400x400 four corners labels to 606x608 whole lab
+    labels = fuse_four_corners_labels(preds)
+    n_labels = labels.size(dim=0)
     # Create images for submission
-    for i in range(1, 51):
-        plt.imsave('Predictions/satImage_' + '%.3d' % i + '.png', preds[i - 1].squeeze(), cmap=cm.gray)
-    submission_filename = 'final_submission.csv'
+    for i in range(0, n_labels):
+        plt.imsave('Predictions/satImage_' + '%.3d' % i+1 + '.png', labels[i].squeeze(), cmap="gray")
+
     image_filenames = []
-    for i in range(1, 51):
-        image_filename = 'Predictions/satImage_' + '%.3d' % i + '.png'
+    for i in range(0, 50):
+        image_filename = 'Predictions/satImage_' + '%.3d' % i+1 + '.png'
         print(image_filename)
         image_filenames.append(image_filename)
+
+    submission_filename = 'final_submission.csv'
     masks_to_submission(submission_filename, *image_filenames)

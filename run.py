@@ -35,4 +35,4 @@ train_acc, val_acc, model = run_training(
 )
 
 # ===== MAKE-SAVE PREDICTION =====
-#get_prediction(model)      Ne marche pas encore pour le moment ... problème de type/taille 
+get_prediction(model)
