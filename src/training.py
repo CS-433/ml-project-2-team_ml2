@@ -164,7 +164,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
 
 
 def get_prediction(model):
-    device = torch.device('cpu' if torch.cuda.is_available() else 'gpu')
+    device = torch.device('gpu' if torch.cuda.is_available() else 'cpu')
     test_imags = load_test_data("Data/test_set_images")
     inputs = test_imags.to(device)  # You can move your input to gpu, torch defaults to cpu
 
@@ -178,12 +178,13 @@ def get_prediction(model):
     # Convert from 400x400 four corners labels to 606x608 whole lab
     labels = fuse_four_corners_labels(preds)
     n_labels = labels.size(dim=0)
+
     # Create images for submission
     for i in range(0, n_labels):
         plt.imsave('Predictions/satImage_' + '%.3d' % i+1 + '.png', labels[i].squeeze(), cmap="gray")
 
     image_filenames = []
-    for i in range(0, 50):
+    for i in range(0, n_labels):
         image_filename = 'Predictions/satImage_' + '%.3d' % i+1 + '.png'
         print(image_filename)
         image_filenames.append(image_filename)

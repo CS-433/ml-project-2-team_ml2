@@ -34,5 +34,20 @@ train_acc, val_acc, model = run_training(
     frac_data=frac_data
 )
 
+
 # ===== MAKE-SAVE PREDICTION =====
 get_prediction(model)
+
+# ===== SAVE MODEL =====
+filename_model = f"Predictions/model.pth"
+torch.save(model,filename_model )
+
+# ===== LOAD MODEL + PREDICTION =====
+try_saved_model = False
+if try_saved_model:
+    filename_model = "Predictions/model.pth"
+
+    model = torch.load(filename_model)
+    model.eval()
+
+    get_prediction(model)

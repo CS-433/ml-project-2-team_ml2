@@ -11,7 +11,7 @@ import matplotlib.image as mpimg
 
 class Roads(Dataset):
     # mapping between label class names and indices
-    def __init__(self, split='train', img_size=400,frac_data='1.0'):
+    def __init__(self, split='train', img_size=400, frac_data=1.0):
 
         # prepare data
         self.img_size = img_size
@@ -28,7 +28,7 @@ class Roads(Dataset):
             label = label[:, None, :, :]  # Ajoute la dim C = 1
             self.data = []
             for i in range(label.shape[0]):
-                self.data.append((obs[i,:], label[i,:]))
+                self.data.append((obs[i, :], label[i, :]))
 
         if split == 'test':
             input_dir_test = "Data/test_set_images"
@@ -47,7 +47,7 @@ class Roads(Dataset):
         return img, label
 
 
-def load_data(input_dir, img_size=400, split='train', frac_data='1.0'):
+def load_data(input_dir, img_size=400, split='train', frac_data=1.0):
     """
     For the observation :
         Convert all the images from the directory into a tensor of size (N, C, H, W)
@@ -71,12 +71,14 @@ def load_data(input_dir, img_size=400, split='train', frac_data='1.0'):
 
     # ===== DEFINITION OF NUMBER OF IMAGES TO IMPORT =====
     if split == 'train':
-        n_image = np.floor(0.8*len(filenames))
+        n_image = np.floor(0.8 * len(filenames))
     elif split == 'val':
         n_image = len(filenames) - np.floor(0.8 * len(filenames))
+    elif split == 'test':
+        n_image = len(filenames)
     else:
         raise TypeError("Split parameter not recognised!")
-    n_image = int(n_image*frac_data)
+    n_image = int(n_image * frac_data)
 
     # ===== SELECTION OF THE FILE NAMES TO IMPORT =====
     if split == 'train':
@@ -109,11 +111,11 @@ def load_test_data(rootdir, img_size=400):
     n_image = len(dirs)
     n_channel = 3
 
-    test_tensor = torch.zeros(4*n_image, n_channel, img_size, img_size, dtype=torch.uint8)
+    test_tensor = torch.zeros(4 * n_image, n_channel, img_size, img_size, dtype=torch.uint8)
     index = 0
 
     for i, d in enumerate(dirs):
-        image_test = load_data(d, img_size=608)
+        image_test = load_data(d, img_size=608, split="test")
         transform = FiveCrop(img_size)
         up_left, up_right, down_left, down_right, _ = transform(image_test)
 
@@ -128,30 +130,28 @@ def load_test_data(rootdir, img_size=400):
 
     return test_tensor
 
-def fuse_four_corners_labels(four_corners_labels, in_size=400, out_size=608):
 
+def fuse_four_corners_labels(four_corners_labels, in_size=400, out_size=608, n_channel=1):
     assert out_size <= 2 * in_size
 
     n_corners = four_corners_labels.size(dim=0)
     assert n_corners % 4 == 0
-    n_images = n_corners//4
-
-    n_channel = 1
-
+    n_images = n_corners // 4
     whole_labels = torch.zeros(n_images, n_channel, out_size, out_size, dtype=torch.bool)
     for i in range(n_images):
-        index = i*4
+        index = i * 4
         up_left = four_corners_labels[index]
-        up_right = four_corners_labels[index+1]
-        low_left = four_corners_labels[index+2]
-        low_right = four_corners_labels[index+3]
+        up_right = four_corners_labels[index + 1]
+        low_left = four_corners_labels[index + 2]
+        low_right = four_corners_labels[index + 3]
 
-        whole_labels[i, n_channel, 0:in_size, 0:in_size] = up_left
-        whole_labels[i, n_channel, 0:in_size, out_size-in_size:out_size] = up_right
-        whole_labels[i, n_channel, out_size-in_size:out_size, 0:in_size] = low_left
-        whole_labels[i, n_channel, out_size-in_size:out_size, out_size-in_size:out_size] = low_right
+        whole_labels[i, :, 0:in_size, 0:in_size] = up_left
+        whole_labels[i, :, 0:in_size, out_size - in_size:out_size] = up_right
+        whole_labels[i, :, out_size - in_size:out_size, 0:in_size] = low_left
+        whole_labels[i, :, out_size - in_size:out_size, out_size - in_size:out_size] = low_right
 
     return whole_labels
+
 
 def load_test_data_2(test_dir):  # CHECKED
     test_names = os.listdir(test_dir)
@@ -172,6 +172,7 @@ def load_test_data_2(test_dir):  # CHECKED
         tensor[i] = tv.io.read_image(os.path.join(test_dir, test_names[i], test_names[i]) + ".png")
 
     return tensor
+
 
 def load_image(infilename):
     data = mpimg.imread(infilename)
