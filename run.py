@@ -17,7 +17,7 @@ else:
 torch.cuda.empty_cache()
 image_size = 400
 model_factory = UNet
-num_epochs = 1
+num_epochs = 100
 frac_data = 1.0
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 

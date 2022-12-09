@@ -162,7 +162,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
 
 
 def get_prediction(model):
-    device = torch.device('gpu' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     test_dataset, test_loader = get_dataloaders("test", frac_data=1, shuffle=False)
 
     # Run forward pass

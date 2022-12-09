@@ -1,0 +1,11 @@
+overall accuracy = 97%
+
+image_size = 400
+model_factory = Unet
+num_epochs = 100
+frac_data = 1.0
+
+optimizer_kwargs = dict(
+    lr=1e-3,
+    weight_decay=1e-2,
+)
