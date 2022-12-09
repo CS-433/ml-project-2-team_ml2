@@ -16,8 +16,8 @@ output_dir_obs = "../../Data/training_processed/images/"
 output_dir_label = "../../Data/training_processed/groundtruth/"
 
 # Load data
-obs = load_data(input_dir_obs, img_size=400)
-label = load_data(input_dir_label, img_size=400)
+obs = load_data(input_dir_obs, img_size=400, split="test")
+label = load_data(input_dir_label, img_size=400, split="test")
 
 # Labels to value 0 or 255 (no value in between)
 label = label >= 128
@@ -38,11 +38,15 @@ rot_obs_90 = tv.transforms.functional.rotate(obs, 90)
 rot_obs_180 = tv.transforms.functional.rotate(obs, 180)
 rot_obs_270 = tv.transforms.functional.rotate(obs, 270)
 obs = torch.cat((obs, rot_obs_90, rot_obs_180, rot_obs_270))
+rot_obs_45 = tv.transforms.functional.rotate(obs, 45, fill=0)
+obs = torch.cat((obs, rot_obs_45))
 
 rot_label_90 = tv.transforms.functional.rotate(label, 90)
 rot_label_180 = tv.transforms.functional.rotate(label, 180)
 rot_label_270 = tv.transforms.functional.rotate(label, 270)
 label = torch.cat((label, rot_label_90, rot_label_180, rot_label_270))
+rot_label_45 = tv.transforms.functional.rotate(label, 45, fill=0)
+label = torch.cat((label, rot_label_45))
 
 # Noise TODO Add noise
 

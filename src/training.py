@@ -1,21 +1,19 @@
-from src.Save_Load.load_data import *
-import torch
-import numpy as np
+import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from src.Modeles.ResUNet import *
+
 from src.Modeles.UNet import *
+from src.Save_Load.load_data import *
 from src.Save_Load.save_data import *
 from src.Submission.mask_to_submission import *
-import matplotlib.pyplot as plt
 
 
 # Load data
-def get_dataloaders(split, frac_data):
+def get_dataloaders(split, frac_data, shuffle=True):
     data_dataset = Roads(split=split, frac_data=frac_data)
     # data loader
     data_loader = DataLoader(data_dataset,
                              batch_size=3,
-                             shuffle=True,
+                             shuffle=shuffle,
                              num_workers=0,
                              pin_memory=False)
     return data_dataset, data_loader
@@ -83,10 +81,10 @@ def validate(model, device, val_loader, criterion, SaveResults=True):
             data, target = data.to(device), target.to(device)
             output = model(data)  # tensor[batch,1,400,400]
 
-            # apply treshold to binaries the output
-            treshold = 0.5
-            output[output < treshold] = 0
-            output[output > treshold] = 1
+            # apply threshold to binaries the output
+            threshold = 0.5
+            output[output < threshold] = 0
+            output[output > threshold] = 1
 
             if SaveResults:
                 targets = torch.cat((targets, target.cpu()), dim=0)
@@ -165,29 +163,37 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
 
 def get_prediction(model):
     device = torch.device('gpu' if torch.cuda.is_available() else 'cpu')
-    test_imags = load_test_data("Data/test_set_images")
-    inputs = test_imags.to(device)  # You can move your input to gpu, torch defaults to cpu
+    test_dataset, test_loader = get_dataloaders("test", frac_data=1, shuffle=False)
 
     # Run forward pass
+    print("Evaluating predictions...")
     with torch.no_grad():
-        model.eval()
-        data = inputs.float()
-        data = data.to(device)
-        preds = model(data)
+        model.eval()  # Important: eval mode (affects dropout, batch norm etc)
+        outputs = torch.zeros((1, 1, 400, 400))
+        for data, _ in test_loader:  # run the
+            data = data.float()
+            data = data.to(device)
+            output = model(data)  # tensor[batch,1,400,400]
 
+            # apply threshold to binaries the output
+            threshold = 0.5
+            output[output < threshold] = 0
+            output[output > threshold] = 1
+
+            outputs = torch.cat((outputs, output.cpu()), dim=0)
+
+    outputs = outputs[1:]
     # Convert from 400x400 four corners labels to 606x608 whole lab
-    labels = fuse_four_corners_labels(preds)
+    labels = fuse_four_corners_labels(outputs)
     n_labels = labels.size(dim=0)
 
     # Create images for submission
-    for i in range(0, n_labels):
-        plt.imsave('Predictions/satImage_' + '%.3d' % i+1 + '.png', labels[i].squeeze(), cmap="gray")
+    print("Saving predictions")
+    image_files = []
+    for ind in range(0, n_labels):
+        image_file = 'Predictions/satImage_' + '%.3d' % (ind + 1) + '.png'
+        plt.imsave(image_file, labels[ind].squeeze(), cmap="gray")
+        image_files.append(image_file)
 
-    image_filenames = []
-    for i in range(0, n_labels):
-        image_filename = 'Predictions/satImage_' + '%.3d' % i+1 + '.png'
-        print(image_filename)
-        image_filenames.append(image_filename)
-
-    submission_filename = 'final_submission.csv'
-    masks_to_submission(submission_filename, *image_filenames)
+    submission_file = 'final_submission.csv'
+    masks_to_submission(submission_file, *image_files)

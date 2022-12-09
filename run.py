@@ -40,7 +40,7 @@ get_prediction(model)
 
 # ===== SAVE MODEL =====
 filename_model = f"Predictions/model.pth"
-torch.save(model,filename_model )
+torch.save(model, filename_model)
 
 # ===== LOAD MODEL + PREDICTION =====
 try_saved_model = False

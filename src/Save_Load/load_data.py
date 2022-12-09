@@ -32,12 +32,12 @@ class Roads(Dataset):
 
         if split == 'test':
             input_dir_test = "Data/test_set_images"
-            up_lefts, up_rights, down_lefts, down_rights = load_test_data(input_dir_test)
-            test = torch.cat((up_lefts, up_rights, down_lefts, down_rights))
-            n_image = len(test)
-            label = torch.zeros(n_image, 1, img_size, img_size, dtype=torch.uint8)  # Bonne initialization ?
-
-            self.data = test, label
+            test = load_test_data(input_dir_test)
+            n_corners = test.size(dim=0)
+            label = torch.zeros(n_corners, 1, img_size, img_size, dtype=torch.uint8)
+            self.data = []
+            for i in range(label.shape[0]):
+                self.data.append((test[i], label[i]))
 
     def __len__(self):
         return len(self.data)
@@ -106,7 +106,7 @@ def load_test_data(rootdir, img_size=400):
     The tensor containes 4 different parts of each test image (up_left, up_right, down_left, down_right)
     """
 
-    dirs = [os.path.join(rootdir, file) for file in os.listdir(rootdir)]
+    dirs = sorted([os.path.join(rootdir, file) for file in os.listdir(rootdir)])
 
     n_image = len(dirs)
     n_channel = 3
@@ -115,6 +115,7 @@ def load_test_data(rootdir, img_size=400):
     index = 0
 
     for i, d in enumerate(dirs):
+        print(d)
         image_test = load_data(d, img_size=608, split="test")
         transform = FiveCrop(img_size)
         up_left, up_right, down_left, down_right, _ = transform(image_test)
