@@ -3,8 +3,10 @@
 
 # Import libraries
 from src.Modeles.UNet import *
-from src.training import *
-from src.Modeles.ResUNet import *
+#from src.training import *
+from src.training_CUNet import *
+#from src.Modeles.ResUNet import *
+from src.Modeles.MDUNet import *
 
 
 # Check for gpu availability:
@@ -17,8 +19,8 @@ else:
 torch.cuda.empty_cache()
 image_size = 400
 model_factory = UNet
-num_epochs = 100
-frac_data = 1.0
+num_epochs = 1
+frac_data = 0.05
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 optimizer_kwargs = dict(

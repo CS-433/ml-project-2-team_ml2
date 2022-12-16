@@ -1,7 +1,8 @@
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 
 from src.Modeles.UNet import *
+from src.Modeles.MDUNet import *
 from src.Save_Load.load_data import *
 from src.Save_Load.save_data import *
 from src.Submission.mask_to_submission import *
@@ -29,29 +30,20 @@ def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, dev
     lr_history = []
     for batch_idx, (data, target) in enumerate(train_loader):
         target = target.type(torch.LongTensor)  # avoid an error idk why?
-        # data = data.float()
         data, target = data.float().to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
-        '''print("Original shape of output and target:")
-        print(output.shape)
-        print(target.shape)'''
         output = output.flatten().float()  # [batch*400*400]
         target = target.flatten().float()  # [batch*400*400]
-        '''print("Shape after flatten of output and target:")
-        print(output.shape)
-        print(target.shape)'''
-
         loss = criterion(output, target)
         loss.backward()
         optimizer.step()
         scheduler.step()
 
-        # predictions = output.argmax(1).cpu().detach().numpy()
         predictions = output.cpu().detach().numpy()
         ground_truth = target.cpu().detach().numpy()
 
-        accuracy_float = (predictions == ground_truth).mean()
+        accuracy_float = np.mean((predictions == ground_truth))
         loss_float = loss.item()
 
         loss_history.append(loss_float)
@@ -129,7 +121,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
     print("DATASETS LOADED! ")
 
     # ===== Model, Optimizer and Criterion =====
-    model = UNet(3, 1)
+    model = MDUNet(3, 1)
     model = model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), **optimizer_kwargs)
     criterion = torch.nn.functional.cross_entropy
@@ -188,7 +180,7 @@ def get_prediction(model):
     n_labels = labels.size(dim=0)
 
     # Create images for submission
-    print("Saving predictions")
+    """print("Saving predictions")
     image_files = []
     for ind in range(0, n_labels):
         image_file = 'Predictions/satImage_' + '%.3d' % (ind + 1) + '.png'
@@ -196,4 +188,4 @@ def get_prediction(model):
         image_files.append(image_file)
 
     submission_file = 'final_submission.csv'
-    masks_to_submission(submission_file, *image_files)
+    masks_to_submission(submission_file, *image_files)"""

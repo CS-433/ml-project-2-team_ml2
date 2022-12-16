@@ -39,6 +39,41 @@ class Roads(Dataset):
             for i in range(label.shape[0]):
                 self.data.append((test[i], label[i]))
 
+        if split == 'inter_train':
+            input_dir_inter = "Results/temp"
+            input_dir_label = "Data/training_processed/groundtruth"
+            # Load data from files:
+            inter = load_data(input_dir_inter, img_size, split)
+            label = load_data(input_dir_label, img_size, 'train', frac_data)
+            # Label to binary, unique channel
+            label = label[:, 1] > 0
+            label = label[:, None, :, :]  # Ajoute la dim C = 1
+            inter = inter[:, 1] > 0
+            inter = inter[:, None, :, :]  # Ajoute la dim C = 1
+            self.data = []
+            print("inter shape : " , inter.shape)
+            print("label shape : " , label.shape)
+            for i in range(label.shape[0]):
+                self.data.append((inter[i, :], label[i, :]))
+
+        if split == 'inter_val':
+            input_dir_inter = "Results/temp"
+            input_dir_label = "Data/training_processed/groundtruth"
+            # Load data from files:
+            inter = load_data(input_dir_inter, img_size, split)
+            label = load_data(input_dir_label, img_size, 'val', frac_data)
+
+            # Label to binary, unique channel
+            label = label[:, 1] > 0
+            label = label[:, None, :, :]  # Ajoute la dim C = 1
+            inter = inter[:, 1] > 0
+            inter = inter[:, None, :, :]  # Ajoute la dim C = 1
+            self.data = []
+            print("inter shape : " , inter.shape)
+            print("label shape : " , label.shape)
+            for i in range(label.shape[0]):
+                self.data.append((inter[i, :], label[i, :]))
+
     def __len__(self):
         return len(self.data)
 
@@ -68,13 +103,12 @@ def load_data(input_dir, img_size=400, split='train', frac_data=1.0):
 
     """
     filenames = sorted([name for name in os.listdir(input_dir)])
-
     # ===== DEFINITION OF NUMBER OF IMAGES TO IMPORT =====
     if split == 'train':
         n_image = np.floor(0.8 * len(filenames))
     elif split == 'val':
         n_image = len(filenames) - np.floor(0.8 * len(filenames))
-    elif split == 'test':
+    elif split in ('inter_train', 'inter_val', 'test'):
         n_image = len(filenames)
     else:
         raise TypeError("Split parameter not recognised!")
