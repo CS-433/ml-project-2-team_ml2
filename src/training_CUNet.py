@@ -31,15 +31,15 @@ def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, dev
     accuracy_history = []
     lr_history = []
     outputs = torch.zeros((1, 1, 400, 400))
-    #targets = torch.zeros((1, 1, 400, 400))
+    targets = torch.zeros((1, 1, 400, 400))
     for batch_idx, (data, target) in enumerate(train_loader):
         target = target.type(torch.LongTensor)  # avoid an error idk why?
         data, target = data.float().to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
         if SaveResults:
-            outputs = torch.cat((outputs, output.cpu()), dim=0)
-            #targets = torch.cat((targets, target.cpu()), dim=0)
+            outputs = torch.cat((outputs, output.cpu().detach()), dim=0)
+            targets = torch.cat((targets, target.cpu().detach()), dim=0)
         output = output.flatten().float()  # [batch*400*400]
         target = target.flatten().float()  # [batch*400*400]
         loss = criterion(output, target)
@@ -64,10 +64,10 @@ def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, dev
     if SaveResults:
         outputs[outputs > threshold] = 0    # apply threshold to keep unsure results
         outputs = outputs[1::, :, :, :]  # remove first empty value
-        save_data(outputs, "Results/temp/", target=False)   # save data to train MDUNet
-        #targets = targets[1:, :, :, :]  # remove first empty value
+        #save_data(outputs, "Results/temp/", target=False)   # save data to train MDUNet
+        targets = targets[1::, :, :, :]  # remove first empty value
         #save_data(targets, "Results/temp/", target=True)   # save data to train MDUNet
-    return loss_history, accuracy_history, lr_history
+    return loss_history, accuracy_history, lr_history, outputs, targets
 
 
 # Evaluation of the dataset loaded on "val_loader" with the model in "eval" mode:
@@ -122,7 +122,7 @@ def validate(model, device, val_loader, criterion, SaveResults=False):
         return test_loss, accuracy_float / len(val_loader)
 
 
-def validate_CUNet(modelUNet, modelMDUnet, device, val_loader, criterion, frac_data, SaveResults=True):
+def validate_CUNet(modelUNet, modelMDUnet, device, val_loader, criterion, frac_data, threshold, SaveResults=True):
     with torch.no_grad():
         modelUNet.eval()  # Important: eval mode (affects dropout, batch norm etc)
         modelMDUnet.eval()  # Important: eval mode (affects dropout, batch norm etc)
@@ -133,26 +133,27 @@ def validate_CUNet(modelUNet, modelMDUnet, device, val_loader, criterion, frac_d
         outputsMDUNet = torch.zeros((1, 1, 400, 400))
 
         # remove files from temp folder
-        files = glob.glob('Results/temp/*')
-        for f in files:
-            os.remove(f)
+        #files = glob.glob('Results/temp/*')
+        #for f in files:
+        #    os.remove(f)
 
         for data, target in val_loader:  # run the
             target = target.type(torch.LongTensor)  # avoid an error idk why?
             data = data.float()
             data, target = data.to(device), target.to(device)
             outputUNet = modelUNet(data)  # tensor[batch,1,400,400]
-            # apply threshold to binaries the output
-            #threshold = 0.5
-            outputsUNet = torch.cat((outputsUNet, outputUNet.cpu()), dim=0)
-            targets = torch.cat((targets, target.cpu()), dim=0)
+            outputsUNet = torch.cat((outputsUNet, outputUNet.cpu().detach()), dim=0)
+            targets = torch.cat((targets, target.cpu().detach()), dim=0)
 
         outputsUNet = outputsUNet[1::, :, :, :]
-        outputsUNet[outputsUNet > 0.9] = 0
+        outputsInter = torch.clone(outputsUNet)
+        outputsInter[outputsInter > threshold] = 0
         targets = targets[1::, :, :, :]
-        print(f"outputsUNet shape : {outputsUNet.shape}")
-        save_data(outputsUNet, "Results/temp/", target=False)   # save data to train MDUNet
-        train_inter_dataset, train_inter_loader = get_dataloaders("inter_val", frac_data=frac_data)
+        save_data(outputsInter, "Results/Prediction_imgs/CUNet/temp/", target=False)   # save data to train MDUNet
+        save_data(targets, "Results/Prediction_imgs/CUNet/temp/", target=True)   # save data to train MDUNet
+
+        train_inter_dataset = Inter(outputsUNet, targets)
+        train_inter_loader = DataLoader(train_inter_dataset, batch_size=3, shuffle=False, num_workers=0, pin_memory=False)
 
         for inter, target in train_inter_loader:  # run the
             target = target.type(torch.LongTensor)  # avoid an error idk why?
@@ -162,47 +163,40 @@ def validate_CUNet(modelUNet, modelMDUnet, device, val_loader, criterion, frac_d
             outputsMDUNet = torch.cat((outputsMDUNet, outputMDUNet.cpu()), dim=0)
 
         outputsMDUNet = outputsMDUNet[1:, :, :, :]
-        # apply threshold to binaries the output
+        # apply threshold to binary the output
         outputsUNet[outputsUNet < 0.5] = 0
         outputsUNet[outputsUNet > 0.5] = 1
         outputsMDUNet[outputsMDUNet < 0.5] = 0
         outputsMDUNet[outputsMDUNet > 0.5] = 1
 
         # combination of outputs
-        print(f"outputsUNet shape : {outputsUNet.shape}")
-        print(f"outputsMDUNet shape : {outputsMDUNet.shape}")
-        save_data(outputsUNet, "Results/Prediction_imgs/pred_UNet/", target=False)   # save data to train MDUNet
-        save_data(outputsMDUNet, "Results/Prediction_imgs/pred_MDUNet/", target=False)   # save data to train MDUNet
+        save_data(outputsUNet, "Results/Prediction_imgs/CUNet/pred_UNet/", target=False)   # save data to train MDUNet
+        save_data(outputsMDUNet, "Results/Prediction_imgs/CUNet/pred_MDUNet/", target=False)   # save data to train MDUNet
         outputs = outputsUNet
         outputs[outputsMDUNet == 1] = 1
 
         outputs_flat = outputs.flatten().float()  # [batch*200*200]
         targets_flat = targets.flatten().float()  # [batch*200*200]
-        '''print(output.shape)
-        print(target.shape)'''
-        test_loss += criterion(outputs_flat, targets_flat)
+
+        test_loss = criterion(outputs_flat, targets_flat)
 
         predictions = outputs_flat.cpu().detach().numpy()
         ground_truth = targets_flat.cpu().detach().numpy()
 
         accuracy_float = np.mean((predictions == ground_truth))
 
-        test_loss /= len(val_loader)
-
         # Loading of output into folder "Results/Prediction_imgs" :
         if SaveResults:
-            save_data(outputs, "Results/Prediction_imgs/", target=False)
-            save_data(targets, "Results/Prediction_imgs/", target=True)
+            save_data(outputs, "Results/Prediction_imgs/CUNet/Final_Results/", target=False)
+            save_data(targets, "Results/Prediction_imgs/CUNet/Final_Results/", target=True)
 
         print(
-            "===== OVER ALL: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)".format(
+            "===== OVER ALL: Average loss: {:.4f}, Accuracy: {:.0f}%".format(
                 test_loss,
-                accuracy_float,
-                len(val_loader),
-                100.0 * accuracy_float / len(val_loader),
+                100.0 * accuracy_float,
             )
         )
-        return test_loss, accuracy_float / len(val_loader)
+        return test_loss, accuracy_float
 
 
 def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", frac_data=1.0):
@@ -224,7 +218,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
     )
 
     # ===== Train Model =====
-    threshold = 0.9
+    threshold = 0.7
     # Train UNet
     lr_UNet_history = []
     train_loss_UNet_history = []
@@ -232,10 +226,11 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
     val_loss_UNet_history = []
     val_acc_UNet_history = []
 
+    inter_data, targets = [], []
     for epoch in range(1, num_epochs + 1):
         # Training one epoch
         SaveResults = False if epoch < num_epochs else True
-        train_loss, train_acc, lrs = train_epoch(
+        train_loss, train_acc, lrs, inter_data, targets = train_epoch(
             modelUNet, optimizer, scheduler, criterion, train_loader, epoch, device, threshold, SaveResults
         )
         train_loss_UNet_history.extend(train_loss)
@@ -247,18 +242,17 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
         val_loss_UNet_history.append(val_loss)
         val_acc_UNet_history.append(val_acc)
 
-
     # Train MDUNet
-    train_inter_dataset, train_inter_loader = get_dataloaders("inter_train", frac_data=frac_data)
-    #save_data(train_inter_dataset[0], 'Results/Prediction_imgs/test/', target=False)                !!!!!!!!!!!!!!!!!!!!!!
-    print(len(train_inter_dataset))
+    val_inter_dataset = Inter(inter_data, targets)
+    val_inter_loader = DataLoader(val_inter_dataset, batch_size=3, shuffle=False, num_workers=0, pin_memory=False)
+    save_data(inter_data, 'Results/Prediction_imgs/CUNet/inter_training_dataset/', target=False)
     modelMDUNet = MDUNet(1, 1)
     modelMDUNet = modelMDUNet.to(device)
     optimizerMDUNet = torch.optim.AdamW(modelMDUNet.parameters(), **optimizer_kwargs)
     criterionMDUNet = torch.nn.functional.cross_entropy
     schedulerMDUNet = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizerMDUNet,
-        T_max=(len(train_inter_dataset) * num_epochs) // train_inter_loader.batch_size,
+        T_max=(len(val_inter_dataset) * num_epochs) // val_inter_loader.batch_size,
     )
     lr_MDUNet_history = []
     train_loss_MDUNet_history = []
@@ -268,19 +262,19 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
     for epoch in range(1, num_epochs + 1):
         # Training one epoch
         SaveResults = False
-        train_loss, train_acc, lrs = train_epoch(
-            modelMDUNet, optimizerMDUNet, schedulerMDUNet, criterionMDUNet, train_inter_loader, epoch, device, SaveResults
+        train_loss, train_acc, lrs, inter, labels = train_epoch(
+            modelMDUNet, optimizerMDUNet, schedulerMDUNet, criterionMDUNet, val_inter_loader, epoch, device, SaveResults
         )
         train_loss_MDUNet_history.extend(train_loss)
         train_acc_MDUNet_history.extend(train_acc)
         lr_MDUNet_history.extend(lrs)
 
         # Run the validation data through the model
-        #val_loss, val_acc = validate(modelMDUNet, device, val_loader, criterion)
+        val_loss, val_acc = validate(modelMDUNet, device, val_inter_loader, criterionMDUNet)
         val_loss_MDUNet_history.append(val_loss)
         val_acc_MDUNet_history.append(val_acc)
 
-    val_loss_ult, val_acc_ult = validate_CUNet(modelUNet, modelMDUNet, device, val_loader, criterion, frac_data)
+    val_loss_ult, val_acc_ult = validate_CUNet(modelUNet, modelMDUNet, device, val_loader, criterion, frac_data, threshold)
     return train_acc_UNet_history, val_acc_UNet_history, modelUNet
 
 

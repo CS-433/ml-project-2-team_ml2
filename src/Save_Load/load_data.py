@@ -9,6 +9,28 @@ import os
 import matplotlib.image as mpimg
 
 
+class Inter(Dataset):
+    def __init__(self, tensor_, labels):
+        # receive tensor of shape [N,1,400,400]
+        N = tensor_.shape[0]
+        M = labels.shape[0]
+        self.data = []
+        if N != M:
+            raise ValueError('NUMBER OF IMAGES DO NOT MATCH NUMBER OF LABELS IN THE CREATION OF THE OBJECT Inter')
+        ls_tensor_ = torch.split(tensor_, 1, dim=0)
+        ls_labels = torch.split(labels, 1, dim=0)
+        for i in range(N):
+            self. data.append((torch.reshape(ls_tensor_[i], (1, 400, 400)), torch.reshape(ls_labels[i], (1, 400, 400))))
+        #print("Size or inter dataset : ", len(self.data))
+        #print("\t - Shape of element of dataset : ", self.data[0][0].shape)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, item):
+        return self.data[item]
+
+
 class Roads(Dataset):
     # mapping between label class names and indices
     def __init__(self, split='train', img_size=400, frac_data=1.0):
@@ -29,6 +51,7 @@ class Roads(Dataset):
             self.data = []
             for i in range(label.shape[0]):
                 self.data.append((obs[i, :], label[i, :]))
+                #print(f"size of element {i} : {obs[i, :].shape}")
 
         if split == 'test':
             input_dir_test = "Data/test_set_images"
@@ -149,7 +172,7 @@ def load_test_data(rootdir, img_size=400):
     index = 0
 
     for i, d in enumerate(dirs):
-        print(d)
+        #print(d)
         image_test = load_data(d, img_size=608, split="test")
         transform = FiveCrop(img_size)
         up_left, up_right, down_left, down_right, _ = transform(image_test)

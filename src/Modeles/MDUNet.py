@@ -38,10 +38,10 @@ class Dilated(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=1),
             #nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=0, bias=False, dilation=2)
         )
-        self.dil6 = nn.Sequential(
+        """self.dil6 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=0, bias=False, dilation=1)
-        )
-
+        )"""
+        self.conv = nn.Conv2d(5*out_channels, out_channels, kernel_size=1, padding="same", bias=False)
     def forward(self, x):
         x1 = self.dil1(x)
         x2 = self.dil2(x)
@@ -53,7 +53,12 @@ class Dilated(nn.Module):
         print(f"shape of x3 : {x3.shape}")
         print(f"shape of x4 : {x4.shape}")
         print(f"shape of x5 : {x5.shape}")"""
-        return x1 + x2 + x3 + x4 + x5
+        res = torch.cat([x1, x2, x3, x4, x5], dim=1)
+        #print(f"shape of xi : {x1.shape}")
+        #print(f"shape of cat : {res.shape}")
+        res = self.conv(res)
+        #print(f"shape res : {res.shape}")
+        return res
 
 
 class MDUNet(nn.Module):
