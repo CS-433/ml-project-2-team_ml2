@@ -8,6 +8,7 @@ the processed data into directory Data/training_processed/
 # Import necessary libraries
 from src.Save_Load.load_data import *
 from src.Save_Load.save_data import *
+import torchvision as tv
 
 # Paths
 input_dir_obs = "../../Data/training/images/"
@@ -21,7 +22,7 @@ label = load_data(input_dir_label, img_size=400, split="test")
 
 # Labels to value 0 or 255 (no value in between)
 label = label >= 128
-label = (label*255).to(dtype=torch.uint8)
+label = (label * 255).to(dtype=torch.uint8)
 
 # TODO Stack obs and labels and apply common transformation to the stacked tensor (flip, rotation, normalize)
 # TODO Add other transform such as ???
@@ -48,11 +49,42 @@ label = torch.cat((label, rot_label_90, rot_label_180, rot_label_270))
 rot_label_45 = tv.transforms.functional.rotate(label, 45, fill=0)
 label = torch.cat((label, rot_label_45))
 
-# Noise TODO Add noise
+# Noise NONE...
 
-# Normalize
-obs = obs/255
-label = label/255
+# Change type
+obs = obs.to(dtype=torch.float)
+
+image_standardization = False
+all_standardization = True
+
+# Standardization among each image (with each pixels)
+if image_standardization:
+    mean_obs = obs.mean(dim=(2, 3), dtype=torch.float)
+    sd_obs = obs.std(dim=(2, 3), unbiased=True)
+
+    for i in range(1600):
+        for j in range(3):
+            mean = mean_obs[i, j]
+            std = sd_obs[i, j]
+            obs[i, j] = (obs[i, j] - mean) / std
+
+    # mean_obs = obs.mean(dim=(2, 3), dtype=torch.float) ALL 0 -->YES
+    # sd_obs = obs.std(dim=(2, 3), unbiased=True)  ALL 1 --> YES
+
+# Standardization through all images
+if all_standardization:
+    mean_obs = obs.mean(dim=(0), dtype=torch.float)
+    sd_obs = obs.std(dim=(0), unbiased=True)
+
+    for i in range(400):
+        for j in range(400):
+            for k in range(3):
+                mean = mean_obs[k, i, j]
+                std = sd_obs[k, i, j]
+                obs[:, k, i, j] = (obs[:, k, i, j] - mean) / std
+
+    mean_obs = obs.mean(dim=(0), dtype=torch.float)
+    sd_obs = obs.std(dim=(0), unbiased=True)
 
 # Save data as images
 save_data(obs, output_dir_obs)
