@@ -19,8 +19,8 @@ else:
 torch.cuda.empty_cache()
 image_size = 400
 model_factory = UNet
-num_epochs = 20
-frac_data = 0.5
+num_epochs = 2
+frac_data = 0.05
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 optimizer_kwargs = dict(

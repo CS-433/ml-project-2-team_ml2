@@ -1,63 +1,47 @@
 """ Full assembly of the parts to form the complete network """
 import torch
-
 from .unet_parts import *
 
-
 class Dilated(nn.Module):
-    """Dilating"""
-    def __init__(self,in_channels,out_channels):
+    """Dilating block"""
+    def __init__(self, in_channels, out_channels):
         super().__init__()
         self.dil1 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=1),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=2),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=4),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=8),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=16),
-            #nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=0, bias=False, dilation=32)
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=16)
         )
         self.dil2 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=1),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=2),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=4),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=8),
-            #nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=0, bias=False, dilation=16)
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=8)
         )
         self.dil3 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=1),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=2),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=4),
-            #nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=0, bias=False, dilation=8)
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=4)
         )
         self.dil4 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=1),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=2),
-            #nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=0, bias=False, dilation=4)
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=2)
         )
         self.dil5 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=1),
-            #nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=0, bias=False, dilation=2)
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding="same", bias=False, dilation=1)
         )
-        """self.dil6 = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=0, bias=False, dilation=1)
-        )"""
+
         self.conv = nn.Conv2d(5*out_channels, out_channels, kernel_size=1, padding="same", bias=False)
+
     def forward(self, x):
         x1 = self.dil1(x)
         x2 = self.dil2(x)
         x3 = self.dil3(x)
         x4 = self.dil4(x)
         x5 = self.dil5(x)
-        """print(f"shape of x1 : {x1.shape}")
-        print(f"shape of x2 : {x2.shape}")
-        print(f"shape of x3 : {x3.shape}")
-        print(f"shape of x4 : {x4.shape}")
-        print(f"shape of x5 : {x5.shape}")"""
         res = torch.cat([x1, x2, x3, x4, x5], dim=1)
-        #print(f"shape of xi : {x1.shape}")
-        #print(f"shape of cat : {res.shape}")
         res = self.conv(res)
-        #print(f"shape res : {res.shape}")
         return res
 
 
