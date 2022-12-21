@@ -1,102 +1,98 @@
 import torch
 import torch.nn as nn
 
-class batchnorm_relu(nn.Module):
-    def __init__(self, in_c):
-        super().__init__()
 
-        self.bn = nn.BatchNorm2d(in_c)
-        self.relu = nn.ReLU()
+class ResidualConv(nn.Module):
+    def __init__(self, input_dim, output_dim, stride, padding):
+        super(ResidualConv, self).__init__()
 
-    def forward(self, inputs):
-        x = self.bn(inputs)
-        x = self.relu(x)
-        return x
+        self.conv_block = nn.Sequential(
+            nn.BatchNorm2d(input_dim),
+            nn.ReLU(),
+            nn.Conv2d(
+                input_dim, output_dim, kernel_size=3, stride=stride, padding=padding
+            ),
+            nn.BatchNorm2d(output_dim),
+            nn.ReLU(),
+            nn.Conv2d(output_dim, output_dim, kernel_size=3, padding=1),
+        )
+        self.conv_skip = nn.Sequential(
+            nn.Conv2d(input_dim, output_dim, kernel_size=3, stride=stride, padding=1),
+            nn.BatchNorm2d(output_dim),
+        )
 
-class residual_block(nn.Module):
-    def __init__(self, in_c, out_c, stride=1):
-        super().__init__()
+    def forward(self, x):
 
-        """ Convolutional layer """
-        self.b1 = batchnorm_relu(in_c)
-        self.c1 = nn.Conv2d(in_c, out_c, kernel_size=3, padding=1, stride=stride)
-        self.b2 = batchnorm_relu(out_c)
-        self.c2 = nn.Conv2d(out_c, out_c, kernel_size=3, padding=1, stride=1)
+        return self.conv_block(x) + self.conv_skip(x)
 
-        """ Shortcut Connection (Identity Mapping) """
-        self.s = nn.Conv2d(in_c, out_c, kernel_size=1, padding=0, stride=stride)
 
-    def forward(self, inputs):
-        x = self.b1(inputs)
-        x = self.c1(x)
-        x = self.b2(x)
-        x = self.c2(x)
-        s = self.s(inputs)
+class Upsample(nn.Module):
+    def __init__(self, input_dim, output_dim, kernel, stride):
+        super(Upsample, self).__init__()
 
-        skip = x + s
-        return skip
+        self.upsample = nn.ConvTranspose2d(
+            input_dim, output_dim, kernel_size=kernel, stride=stride
+        )
 
-class decoder_block(nn.Module):
-    def __init__(self, in_c, out_c):
-        super().__init__()
+    def forward(self, x):
+        return self.upsample(x)
 
-        self.upsample = nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True)
-        self.r = residual_block(in_c+out_c, out_c)
+class ResUnet(nn.Module):
+    def __init__(self, channel, filters=[64, 128, 256, 512]):
+        super(ResUnet, self).__init__()
 
-    def forward(self, inputs, skip):
-        x = self.upsample(inputs)
-        x = torch.cat([x, skip], axis=1)
-        x = self.r(x)
-        return x
+        self.input_layer = nn.Sequential(
+            nn.Conv2d(channel, filters[0], kernel_size=3, padding=1),
+            nn.BatchNorm2d(filters[0]),
+            nn.ReLU(),
+            nn.Conv2d(filters[0], filters[0], kernel_size=3, padding=1),
+        )
+        self.input_skip = nn.Sequential(
+            nn.Conv2d(channel, filters[0], kernel_size=3, padding=1)
+        )
 
-class resunet(nn.Module):
-    def __init__(self):
-        super().__init__()
+        self.residual_conv_1 = ResidualConv(filters[0], filters[1], 2, 1)
+        self.residual_conv_2 = ResidualConv(filters[1], filters[2], 2, 1)
 
-        """ Encoder 1 """
-        self.c11 = nn.Conv2d(3, 64, kernel_size=3, padding=1)
-        self.br1 = batchnorm_relu(64)
-        self.c12 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
-        self.c13 = nn.Conv2d(3, 64, kernel_size=1, padding=0)
+        self.bridge = ResidualConv(filters[2], filters[3], 2, 1)
 
-        """ Encoder 2 and 3 """
-        self.r2 = residual_block(64, 128, stride=2)
-        self.r3 = residual_block(128, 256, stride=2)
+        self.upsample_1 = Upsample(filters[3], filters[3], 2, 2)
+        self.up_residual_conv1 = ResidualConv(filters[3] + filters[2], filters[2], 1, 1)
 
-        """ Bridge """
-        self.r4 = residual_block(256, 512, stride=2)
+        self.upsample_2 = Upsample(filters[2], filters[2], 2, 2)
+        self.up_residual_conv2 = ResidualConv(filters[2] + filters[1], filters[1], 1, 1)
 
-        """ Decoder """
-        self.d1 = decoder_block(512, 256)
-        self.d2 = decoder_block(256, 128)
-        self.d3 = decoder_block(128, 64)
+        self.upsample_3 = Upsample(filters[1], filters[1], 2, 2)
+        self.up_residual_conv3 = ResidualConv(filters[1] + filters[0], filters[0], 1, 1)
 
-        """ Output """
-        self.output = nn.Conv2d(64, 1, kernel_size=1, padding=0)
-        self.sigmoid = nn.Sigmoid()
+        self.output_layer = nn.Sequential(
+            nn.Conv2d(filters[0], 1, 1, 1),
+            nn.Sigmoid(),
+        )
 
-    def forward(self, inputs):
-        """ Encoder 1 """
-        x = self.c11(inputs)
-        x = self.br1(x)
-        x = self.c12(x)
-        s = self.c13(inputs)
-        skip1 = x + s
+    def forward(self, x):
+        # Encode
+        x1 = self.input_layer(x) + self.input_skip(x)
+        x2 = self.residual_conv_1(x1)
+        x3 = self.residual_conv_2(x2)
+        # Bridge
+        x4 = self.bridge(x3)
+        # Decode
+        x4 = self.upsample_1(x4)
+        x5 = torch.cat([x4, x3], dim=1)
 
-        """ Encoder 2 and 3 """
-        skip2 = self.r2(skip1)
-        skip3 = self.r3(skip2)
+        x6 = self.up_residual_conv1(x5)
 
-        """ Bridge """
-        b = self.r4(skip3)
+        x6 = self.upsample_2(x6)
+        x7 = torch.cat([x6, x2], dim=1)
 
-        """ Decoder """
-        d1 = self.d1(b, skip3)
-        d2 = self.d2(d1, skip2)
-        d3 = self.d3(d2, skip1)
+        x8 = self.up_residual_conv2(x7)
 
-        """ output """
-        output = self.output(d3)
-        output = self.sigmoid(output)
+        x8 = self.upsample_3(x8)
+        x9 = torch.cat([x8, x1], dim=1)
+
+        x10 = self.up_residual_conv3(x9)
+
+        output = self.output_layer(x10)
 
         return output
