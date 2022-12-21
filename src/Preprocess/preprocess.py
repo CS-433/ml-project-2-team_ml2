@@ -1,15 +1,15 @@
 #!/usr/bin/python
 
 """
-Preprocess the training data (obs and labels) with data augmentation (flip, rotation, ...) and normalization. Saves
-the processed data into directory Data/training_processed/
+Preprocess the training data (obs and labels) with data augmentation (flip, rotation, ...) and normalization . The normaization concerns also the test data, it's also lowered in resolution to respect the 400x400 format. Saves
+the processed data into the directory with the same name but with "preprocessed" added at the end of the name
 """
 
 # Import necessary libraries
 from src.Save_Load.load_data import *
 from src.Save_Load.save_data import *
 import torchvision as tv
-
+from PIL import Image
 # Paths
 input_dir_obs = "../../Data/training/images/"
 input_dir_label = "../../Data/training/groundtruth/"
@@ -23,9 +23,6 @@ label = load_data(input_dir_label, img_size=400, split="test")
 # Labels to value 0 or 255 (no value in between)
 label = label >= 128
 label = (label * 255).to(dtype=torch.uint8)
-
-# TODO Stack obs and labels and apply common transformation to the stacked tensor (flip, rotation, normalize)
-# TODO Add other transform such as ???
 
 # Flip
 flip_obs = tv.transforms.functional.hflip(obs)
@@ -49,13 +46,13 @@ label = torch.cat((label, rot_label_90, rot_label_180, rot_label_270))
 rot_label_45 = tv.transforms.functional.rotate(label, 45, fill=0)
 label = torch.cat((label, rot_label_45))
 
-# Noise NONE...
+# Noise NONE since the test images are not noisy
 
 # Change type
 obs = obs.to(dtype=torch.float)
 
-image_standardization = False
-all_standardization = True
+image_standardization = True
+all_standardization = False
 
 # Standardization among each image (with each pixels)
 if image_standardization:
@@ -89,3 +86,51 @@ if all_standardization:
 # Save data as images
 save_data(obs, output_dir_obs)
 save_data(label, output_dir_label)
+
+
+
+# Preprocess test_images :
+
+input_dir_test = "../../Data/test_set_images/"
+output_dir_test = "../../Data/test_set_images_preprocessed/"
+
+test_array = torch.zeros(50, 3, 608, 608)
+for i_test, dir in enumerate(sorted(os.listdir(input_dir_test))):
+    test_array[i_test] = load_data(input_dir_test+dir, img_size=608, split="test")
+
+if image_standardization:
+    mean_test = test_array.mean(dim=(2, 3), dtype=torch.float)
+    sd_test = test_array.std(dim=(2, 3), unbiased=True)
+
+    for i in range(50):
+        for j in range(3):
+            mean = mean_test[i, j]
+            std = sd_test[i, j]
+            test_array[i, j] = (test_array[i, j] - mean) / std
+
+if all_standardization:
+    mean_test = test_array.mean(dim=(0), dtype=torch.float)
+    sd_test = test_array.std(dim=(0), unbiased=True)
+
+    for i in range(608):
+        for j in range(608):
+            for k in range(3):
+                mean = mean_test[k, i, j]
+                std = sd_test[k, i, j]
+                test_array[:, k, i, j] = (test_array[:, k, i, j] - mean) / std
+
+    mean_test = test_array.mean(dim=(0), dtype=torch.float)
+    sd_test = test_array.std(dim=(0), unbiased=True)
+
+# Save 608x608 test_images
+test_array = test_array[None]
+for i_test in range(test_array.size(dim = 0)):
+    save_data(test_array[i_test], output_dir_test)
+
+# Convert to 400x400 test_images
+parent_file = "./../../Data/test_set_images_preprocessed/"
+filenames = [parent_file+path for path in sorted(os.listdir(parent_file))]
+for filename in filenames:
+    image_file = Image.open(filename)
+    image_file.thumbnail((400, 400))
+    image_file.save(filename)
