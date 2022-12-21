@@ -13,7 +13,7 @@ def get_dataloaders(split, frac_data, shuffle=True):
     data_dataset = Roads(split=split, frac_data=frac_data)
     # data loader
     data_loader = DataLoader(data_dataset,
-                             batch_size=4,
+                             batch_size=1,
                              shuffle=shuffle,
                              num_workers=0,
                              pin_memory=False)

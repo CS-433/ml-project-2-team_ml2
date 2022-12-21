@@ -24,9 +24,6 @@ label = load_data(input_dir_label, img_size=400, split="test")
 label = label >= 128
 label = (label * 255).to(dtype=torch.uint8)
 
-# TODO Stack obs and labels and apply common transformation to the stacked tensor (flip, rotation, normalize)
-# TODO Add other transform such as ???
-
 # Flip
 flip_obs = tv.transforms.functional.hflip(obs)
 obs = torch.cat((obs, flip_obs))
@@ -49,7 +46,7 @@ label = torch.cat((label, rot_label_90, rot_label_180, rot_label_270))
 rot_label_45 = tv.transforms.functional.rotate(label, 45, fill=0)
 label = torch.cat((label, rot_label_45))
 
-# Noise NONE...
+
 
 # Change type
 obs = obs.to(dtype=torch.float)
@@ -89,3 +86,42 @@ if all_standardization:
 # Save data as images
 save_data(obs, output_dir_obs)
 save_data(label, output_dir_label)
+
+
+# Preprocess test_images :
+
+input_dir_test = "../../Data/test_set_images/"
+output_dir_test = "../../Data/test_set_images_preprocessed/"
+
+test_array = torch.zeros(50, 3, 608, 608)
+for i_test, dir in enumerate(sorted(os.listdir(input_dir_test))):
+    test_array[i_test] = load_data(input_dir_test+dir, img_size=608, split="test")
+
+if image_standardization:
+    mean_test = test_array.mean(dim=(2, 3), dtype=torch.float)
+    sd_test = test_array.std(dim=(2, 3), unbiased=True)
+
+    for i in range(50):
+        for j in range(3):
+            mean = mean_test[i, j]
+            std = sd_test[i, j]
+            test_array[i, j] = (test_array[i, j] - mean) / std
+
+if all_standardization:
+    mean_test = test_array.mean(dim=(0), dtype=torch.float)
+    sd_test = test_array.std(dim=(0), unbiased=True)
+
+    for i in range(608):
+        for j in range(608):
+            for k in range(3):
+                mean = mean_test[k, i, j]
+                std = sd_test[k, i, j]
+                test_array[:, k, i, j] = (test_array[:, k, i, j] - mean) / std
+
+    mean_test = test_array.mean(dim=(0), dtype=torch.float)
+    sd_test = test_array.std(dim=(0), unbiased=True)
+
+# Save 608x608 test_images
+test_array = test_array[None]
+for i_test in range(test_array.size(dim=0)):
+    save_data(test_array[i_test], output_dir_test)

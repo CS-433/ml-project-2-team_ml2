@@ -54,7 +54,7 @@ class Roads(Dataset):
                 #print(f"size of element {i} : {obs[i, :].shape}")
 
         if split == 'test':
-            input_dir_test = "Data/test_set_images"
+            input_dir_test = "Data/test_set_images_preprocessed"
             test = load_test_data(input_dir_test)
             n_corners = test.size(dim=0)
             label = torch.zeros(n_corners, 1, img_size, img_size, dtype=torch.uint8)
@@ -153,7 +153,7 @@ def load_data(input_dir, img_size=400, split='train', frac_data=1.0):
 
 def load_test_data(rootdir, img_size=400):
     """
-    Returns a tensor of images of size ( 4N x C x H x W) from the rootdir of the test_set_images
+    Returns a tensor of images of size ( 4N x C x H x W) from the dir test_set_images_preprocessed
 
     with H and W = 400
                 C = 3
@@ -163,28 +163,23 @@ def load_test_data(rootdir, img_size=400):
     The tensor containes 4 different parts of each test image (up_left, up_right, down_left, down_right)
     """
 
-    dirs = sorted([os.path.join(rootdir, file) for file in os.listdir(rootdir)])
-
-    n_image = len(dirs)
+    n_image = 50
     n_channel = 3
 
     test_tensor = torch.zeros(4 * n_image, n_channel, img_size, img_size, dtype=torch.uint8)
-    index = 0
 
-    for i, d in enumerate(dirs):
-        #print(d)
-        image_test = load_data(d, img_size=608, split="test")
-        transform = FiveCrop(img_size)
-        up_left, up_right, down_left, down_right, _ = transform(image_test)
+    image_test = load_data(rootdir, img_size=608, split="test")
+    transform = FiveCrop(img_size)
+    up_left, up_right, down_left, down_right, _ = transform(image_test)
 
-        test_tensor[index] = up_left
-        index += 1
-        test_tensor[index] = up_right
-        index += 1
-        test_tensor[index] = down_left
-        index += 1
-        test_tensor[index] = down_right
-        index += 1
+    test_tensor[index] = up_left
+    index += 1
+    test_tensor[index] = up_right
+    index += 1
+    test_tensor[index] = down_left
+    index += 1
+    test_tensor[index] = down_right
+    index += 1
 
     return test_tensor
 
@@ -207,30 +202,7 @@ def fuse_four_corners_labels(four_corners_labels, in_size=400, out_size=608, n_c
         whole_labels[i, :, 0:in_size, out_size - in_size:out_size] = up_right
         whole_labels[i, :, out_size - in_size:out_size, 0:in_size] = low_left
         whole_labels[i, :, out_size - in_size:out_size, out_size - in_size:out_size] = low_right
-
     return whole_labels
-
-
-def load_test_data_2(test_dir):  # CHECKED
-    test_names = os.listdir(test_dir)
-
-    prefixes = ('.')
-    for dir_ in test_names[:]:
-        if dir_.startswith(prefixes):
-            test_names.remove(dir_)
-    num_test = len(test_names)
-
-    # get data permutation
-    order = [int(test_names[i].split("_")[1]) for i in range(num_test)]
-    p = np.argsort(order)
-    n_channel = 3
-    img_size = 608
-    tensor = torch.zeros(50, n_channel, img_size, img_size, dtype=torch.uint8)
-    for i, filename in enumerate(test_names):
-        tensor[i] = tv.io.read_image(os.path.join(test_dir, test_names[i], test_names[i]) + ".png")
-
-    return tensor
-
 
 def load_image(infilename):
     data = mpimg.imread(infilename)
