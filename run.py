@@ -19,7 +19,7 @@ else:
 # ===== TRAINING NEURAL NETWORK =====
 torch.cuda.empty_cache()
 image_size = 400
-model = 'unet'  # Choose between 'unet' and 'resunet'
+model = 'resunet'  # Choose between 'unet' and 'resunet'
 num_epochs = 1
 frac_data = 0.05
 device = 'cuda' if torch.cuda.is_available() else 'cpu'

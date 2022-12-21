@@ -1,4 +1,4 @@
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 
 from src.Modeles.UNet import *
@@ -13,7 +13,7 @@ def get_dataloaders(split, frac_data, shuffle=True):
     data_dataset = Roads(split=split, frac_data=frac_data)
     # data loader
     data_loader = DataLoader(data_dataset,
-                             batch_size=1,
+                             batch_size=3,
                              shuffle=shuffle,
                              num_workers=0,
                              pin_memory=False)
@@ -124,7 +124,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
     if model == 'unet':
         model = UNet(3, 1)
     elif model == 'resunet':
-        model = ResUNet(3, 1)
+        model = ResUnet(channel=3)
     else:
         raise ValueError('INVALID MODEL CHOSEN !')
     model = model.to(device)
@@ -185,12 +185,12 @@ def get_prediction(model):
     n_labels = labels.size(dim=0)
 
     # Create images for submission
-    """print("Saving predictions")
+    print("Saving predictions")
     image_files = []
     for ind in range(0, n_labels):
-        image_file = 'Predictions/satImage_' + '%.3d' % (ind + 1) + '.png'
+        image_file = 'Predictions/images/satImage_' + '%.3d' % (ind + 1) + '.png'
         plt.imsave(image_file, labels[ind].squeeze(), cmap="gray")
         image_files.append(image_file)
 
     submission_file = 'final_submission.csv'
-    masks_to_submission(submission_file, *image_files)"""
+    masks_to_submission(submission_file, *image_files)

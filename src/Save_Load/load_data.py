@@ -172,14 +172,11 @@ def load_test_data(rootdir, img_size=400):
     transform = FiveCrop(img_size)
     up_left, up_right, down_left, down_right, _ = transform(image_test)
 
-    test_tensor[index] = up_left
-    index += 1
-    test_tensor[index] = up_right
-    index += 1
-    test_tensor[index] = down_left
-    index += 1
-    test_tensor[index] = down_right
-    index += 1
+    for index in range(n_image):
+        test_tensor[index*4] = up_left[index]
+        test_tensor[index*4+1] = up_right[index]
+        test_tensor[index*4+2] = down_left[index]
+        test_tensor[index*4+3] = down_right[index]
 
     return test_tensor
 
