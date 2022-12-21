@@ -199,7 +199,7 @@ def get_prediction(model):
     filenames = [parent_file + path for path in sorted(os.listdir(parent_file))]
     for filename in filenames:
         image_file = Image.open(filename)
-        image_file.resize((608, 608))
+        image_file = image_file.resize((608, 608), Image.ANTIALIAS)
         image_file.save(filename)
 
     submission_file = 'final_submission.csv'
