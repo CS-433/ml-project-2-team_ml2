@@ -13,7 +13,7 @@ def get_dataloaders(split, frac_data=1.0, shuffle=True):
     data_dataset = Roads(split=split, frac_data=frac_data)
     # data loader
     data_loader = DataLoader(data_dataset,
-                             batch_size=3,
+                             batch_size=4,
                              shuffle=shuffle,
                              num_workers=0,
                              pin_memory=False)
@@ -46,6 +46,7 @@ def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, dev
         # get accuracy and loss
         predictions = output.cpu().detach().numpy()
         ground_truth = target.cpu().detach().numpy()
+        predictions = np.where(predictions > 0.5, 1, 0)
         accuracy_float = np.mean((predictions == ground_truth))
         loss_float = loss.item()
         loss_history.append(loss_float)
@@ -179,7 +180,7 @@ def validate_CUNet(modelUNet, modelMDUnet, device, val_loader, criterion, frac_d
 
 
 # Train the model
-def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", frac_data=1.0):
+def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", frac_data=1.0, model='unet'):
     # ===== Data Loading =====
     train_dataset, train_loader = get_dataloaders("train", frac_data=frac_data)
     val_dataset, val_loader = get_dataloaders("val", frac_data=frac_data)
@@ -199,7 +200,9 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
 
     # ===== Train Model =====
     threshold = 0.7
+
     # Train UNet
+    print('\nTRAINING UNET :')
     lr_UNet_history = []
     train_loss_UNet_history = []
     train_acc_UNet_history = []
@@ -225,6 +228,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
         val_acc_UNet_history.append(val_acc)
 
     # Train MDUNet
+    print('\nTRAINING MD-UNET :')
     val_inter_dataset = Inter(inter_data, targets)
     val_inter_loader = DataLoader(val_inter_dataset, batch_size=3, shuffle=False, num_workers=0, pin_memory=False)
     save_data(inter_data, 'Results/Prediction_imgs/CUNet/inter_training_dataset/', target=False)
@@ -259,6 +263,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
         val_acc_MDUNet_history.append(val_acc)
 
     # Evaluate the CUNet on the validation set
+    print('\nEVALUATING THE C-UNET :')
     val_loss_ult, val_acc_ult = validate_CUNet(modelUNet, modelMDUNet, device, val_loader, criterion, frac_data, threshold)
 
     return train_acc_UNet_history, val_acc_UNet_history, modelUNet

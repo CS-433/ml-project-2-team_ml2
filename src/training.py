@@ -2,7 +2,7 @@
 from torch.utils.data import DataLoader
 
 from src.Modeles.UNet import *
-from src.Modeles.MDUNet import *
+from src.Modeles.ResUNet import *
 from src.Save_Load.load_data import *
 from src.Save_Load.save_data import *
 from src.Submission.mask_to_submission import *
@@ -13,7 +13,7 @@ def get_dataloaders(split, frac_data, shuffle=True):
     data_dataset = Roads(split=split, frac_data=frac_data)
     # data loader
     data_loader = DataLoader(data_dataset,
-                             batch_size=3,
+                             batch_size=4,
                              shuffle=shuffle,
                              num_workers=0,
                              pin_memory=False)
@@ -42,7 +42,7 @@ def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, dev
 
         predictions = output.cpu().detach().numpy()
         ground_truth = target.cpu().detach().numpy()
-
+        predictions = np.where(predictions > 0.5, 1, 0)
         accuracy_float = np.mean((predictions == ground_truth))
         loss_float = loss.item()
 
@@ -91,7 +91,7 @@ def validate(model, device, val_loader, criterion, SaveResults=True):
             predictions = output.cpu().detach().numpy()
             ground_truth = target.cpu().detach().numpy()
 
-            accuracy_float += (predictions == ground_truth).mean()
+            accuracy_float += np.mean((predictions == ground_truth))
 
         test_loss /= len(val_loader)
 
@@ -112,7 +112,7 @@ def validate(model, device, val_loader, criterion, SaveResults=True):
         return test_loss, accuracy_float / len(val_loader)
 
 
-def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", frac_data='1.0'):
+def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", frac_data='1.0', model='unet'):
     # ===== Data Loading =====
     train_dataset, train_loader = get_dataloaders("train", frac_data)
     val_dataset, val_loader = get_dataloaders("val", frac_data)
@@ -121,13 +121,18 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
     print("DATASETS LOADED! ")
 
     # ===== Model, Optimizer and Criterion =====
-    model = MDUNet(3, 1)
+    if model == 'unet':
+        model = UNet(3, 1)
+    elif model == 'resunet':
+        model = ResUNet(3, 1)
+    else:
+        raise ValueError('INVALID MODEL CHOSEN !')
     model = model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), **optimizer_kwargs)
     criterion = torch.nn.functional.cross_entropy
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer,
-        T_max=(len(train_loader.dataset) * num_epochs) // train_loader.batch_size,
+        T_max=(len(train_dataset) * num_epochs) // train_loader.batch_size,
     )
 
     # ===== Train Model =====

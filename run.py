@@ -2,11 +2,11 @@
 
 
 # Import libraries
-from src.Modeles.UNet import *
-#from src.training import *
-from src.training_CUNet import *
-#from src.Modeles.ResUNet import *
-from src.Modeles.MDUNet import *
+useCUNet = False
+if useCUNet:
+    from src.training_CUNet import *
+else:
+    from src.training import *
 
 
 # Check for gpu availability:
@@ -15,12 +15,13 @@ if torch.cuda.is_available():
 else:
     print("WARNING: CUDA NOT AVAILABLE!")
 
+
 # ===== TRAINING NEURAL NETWORK =====
 torch.cuda.empty_cache()
 image_size = 400
-model_factory = UNet
+model = 'unet'  # Choose between 'unet' and 'resunet'
 num_epochs = 2
-frac_data = 0.05
+frac_data = 1
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 optimizer_kwargs = dict(
@@ -33,16 +34,19 @@ train_acc, val_acc, model = run_training(
     num_epochs=num_epochs,
     optimizer_kwargs=optimizer_kwargs,
     device=device,
-    frac_data=frac_data
+    frac_data=frac_data,
+    model=model
 )
 
 
 # ===== MAKE-SAVE PREDICTION =====
 get_prediction(model)
 
+
 # ===== SAVE MODEL =====
 filename_model = f"Predictions/model.pth"
 torch.save(model, filename_model)
+
 
 # ===== LOAD MODEL + PREDICTION =====
 try_saved_model = False
