@@ -21,7 +21,7 @@ torch.cuda.empty_cache()
 image_size = 400
 model = 'unet'  # Choose between 'unet' and 'resunet'
 num_epochs = 2
-frac_data = 1
+frac_data = 0.05
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 optimizer_kwargs = dict(

@@ -1,4 +1,4 @@
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 
 from src.Modeles.UNet import *
