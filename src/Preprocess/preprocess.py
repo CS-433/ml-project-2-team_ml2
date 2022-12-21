@@ -131,6 +131,7 @@ for i_test in range(test_array.size(dim = 0)):
 parent_file = "./../../Data/test_set_images_preprocessed/"
 filenames = [parent_file+path for path in sorted(os.listdir(parent_file))]
 for filename in filenames:
+    print(filename)
     image_file = Image.open(filename)
     image_file.thumbnail((400, 400))
     image_file.save(filename)

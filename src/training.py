@@ -7,13 +7,15 @@ from src.Save_Load.load_data import *
 from src.Save_Load.save_data import *
 from src.Submission.mask_to_submission import *
 
+import matplotlib.pyplot as plt
+from PIL import Image
 
 # Load data
 def get_dataloaders(split, frac_data, shuffle=True):
     data_dataset = Roads(split=split, frac_data=frac_data)
     # data loader
     data_loader = DataLoader(data_dataset,
-                             batch_size=4,
+                             batch_size=1,
                              shuffle=shuffle,
                              num_workers=0,
                              pin_memory=False)
@@ -188,16 +190,16 @@ def get_prediction(model):
     print("Saving predictions")
     image_files = []
     for ind in range(0, n_labels):
-        image_file = './../Predictions/images/satImage_' + '%.3d' % (ind + 1) + '.png'
+        image_file = './Predictions/images/satImage_' + '%.3d' % (ind + 1) + '.png'
         plt.imsave(image_file, labels[ind].squeeze(), cmap="gray")
         image_files.append(image_file)
 
     # Convert images from 400x400 to 608x608
-    parent_file = "./../Predictions/images/"
+    parent_file = "./Predictions/images/"
     filenames = [parent_file + path for path in sorted(os.listdir(parent_file))]
     for filename in filenames:
         image_file = Image.open(filename)
-        image_file.thumbnail((608, 608))
+        image_file = image_file.resize((608, 608), Image.ANTIALIAS)
         image_file.save(filename)
 
     submission_file = 'final_submission.csv'

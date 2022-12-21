@@ -20,7 +20,7 @@ else:
 torch.cuda.empty_cache()
 image_size = 400
 model = 'unet'  # Choose between 'unet' and 'resunet'
-num_epochs = 2
+num_epochs = 3
 frac_data = 0.05
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -39,13 +39,20 @@ train_acc, val_acc, model = run_training(
 )
 
 
-# ===== MAKE-SAVE PREDICTION =====
-get_prediction(model)
-
 
 # ===== SAVE MODEL =====
 filename_model = f"Predictions/model.pth"
 torch.save(model, filename_model)
+
+# ===== PLOT VALIDATION ACCURACY ==========
+plt.plot(val_acc, label = "Validation accuracy")
+plt.legend()
+plt.show()
+plt.savefig("Accuracy_plot.png")
+
+# ===== MAKE-SAVE PREDICTION =====
+get_prediction(model)
+
 
 
 # ===== LOAD MODEL + PREDICTION =====
