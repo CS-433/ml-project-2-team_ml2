@@ -124,7 +124,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
     if model == 'unet':
         model = UNet(3, 1)
     elif model == 'resunet':
-        model = ResUNet(3, 1)
+        model = ResUnet(3, 1)
     else:
         raise ValueError('INVALID MODEL CHOSEN !')
     model = model.to(device)

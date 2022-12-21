@@ -11,7 +11,7 @@ else:
 
 # Check for gpu availability:
 if torch.cuda.is_available():
-    print("CUDA IS AVAILABLE!")
+    print("CUDA IS AVAILABLE")
 else:
     print("WARNING: CUDA NOT AVAILABLE!")
 
