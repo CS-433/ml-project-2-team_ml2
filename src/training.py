@@ -124,7 +124,7 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
     if model == 'unet':
         model = UNet(3, 1)
     elif model == 'resunet':
-        model = ResUnet(3, 1)
+        model = ResUNet(3, 1)
     else:
         raise ValueError('INVALID MODEL CHOSEN !')
     model = model.to(device)
@@ -180,17 +180,25 @@ def get_prediction(model):
             outputs = torch.cat((outputs, output.cpu()), dim=0)
 
     outputs = outputs[1:]
-    # Convert from 400x400 four corners labels to 606x608 whole lab
-    labels = fuse_four_corners_labels(outputs)
+    
+    labels = outputs
     n_labels = labels.size(dim=0)
 
     # Create images for submission
-    """print("Saving predictions")
+    print("Saving predictions")
     image_files = []
     for ind in range(0, n_labels):
-        image_file = 'Predictions/satImage_' + '%.3d' % (ind + 1) + '.png'
+        image_file = './../Predictions/images/satImage_' + '%.3d' % (ind + 1) + '.png'
         plt.imsave(image_file, labels[ind].squeeze(), cmap="gray")
         image_files.append(image_file)
 
+    # Convert images from 400x400 to 608x608
+    parent_file = "./../Predictions/images/"
+    filenames = [parent_file + path for path in sorted(os.listdir(parent_file))]
+    for filename in filenames:
+        image_file = Image.open(filename)
+        image_file.thumbnail((608, 608))
+        image_file.save(filename)
+
     submission_file = 'final_submission.csv'
-    masks_to_submission(submission_file, *image_files)"""
+    masks_to_submission(submission_file, *image_files)
