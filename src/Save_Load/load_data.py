@@ -54,8 +54,8 @@ class Roads(Dataset):
                 #print(f"size of element {i} : {obs[i, :].shape}")
 
         if split == 'test':
-            input_dir_test = "Data/test_set_images"
-            test = load_test_data(input_dir_test)
+            input_dir_test = "Data/test_set_images_preprocessed"
+            test = load_data(input_dir_test, img_size=400, split="test")
             n_corners = test.size(dim=0)
             label = torch.zeros(n_corners, 1, img_size, img_size, dtype=torch.uint8)
             self.data = []
@@ -148,87 +148,6 @@ def load_data(input_dir, img_size=400, split='train', frac_data=1.0):
     tensor = torch.zeros(n_image, n_channel, img_size, img_size, dtype=torch.uint8)
     for i, filename in enumerate(filenames):
         tensor[i] = tv.io.read_image(os.path.join(input_dir, filename))
-    return tensor
-
-
-def load_test_data(rootdir, img_size=400):
-    """
-    Returns a tensor of images of size ( 4N x C x H x W) from the rootdir of the test_set_images
-
-    with H and W = 400
-                C = 3
-                N = number of test images
-
-
-    The tensor containes 4 different parts of each test image (up_left, up_right, down_left, down_right)
-    """
-
-    dirs = sorted([os.path.join(rootdir, file) for file in os.listdir(rootdir)])
-
-    n_image = len(dirs)
-    n_channel = 3
-
-    test_tensor = torch.zeros(4 * n_image, n_channel, img_size, img_size, dtype=torch.uint8)
-    index = 0
-
-    for i, d in enumerate(dirs):
-        #print(d)
-        image_test = load_data(d, img_size=608, split="test")
-        transform = FiveCrop(img_size)
-        up_left, up_right, down_left, down_right, _ = transform(image_test)
-
-        test_tensor[index] = up_left
-        index += 1
-        test_tensor[index] = up_right
-        index += 1
-        test_tensor[index] = down_left
-        index += 1
-        test_tensor[index] = down_right
-        index += 1
-
-    return test_tensor
-
-
-def fuse_four_corners_labels(four_corners_labels, in_size=400, out_size=608, n_channel=1):
-    assert out_size <= 2 * in_size
-
-    n_corners = four_corners_labels.size(dim=0)
-    assert n_corners % 4 == 0
-    n_images = n_corners // 4
-    whole_labels = torch.zeros(n_images, n_channel, out_size, out_size, dtype=torch.bool)
-    for i in range(n_images):
-        index = i * 4
-        up_left = four_corners_labels[index]
-        up_right = four_corners_labels[index + 1]
-        low_left = four_corners_labels[index + 2]
-        low_right = four_corners_labels[index + 3]
-
-        whole_labels[i, :, 0:in_size, 0:in_size] = up_left
-        whole_labels[i, :, 0:in_size, out_size - in_size:out_size] = up_right
-        whole_labels[i, :, out_size - in_size:out_size, 0:in_size] = low_left
-        whole_labels[i, :, out_size - in_size:out_size, out_size - in_size:out_size] = low_right
-
-    return whole_labels
-
-
-def load_test_data_2(test_dir):  # CHECKED
-    test_names = os.listdir(test_dir)
-
-    prefixes = ('.')
-    for dir_ in test_names[:]:
-        if dir_.startswith(prefixes):
-            test_names.remove(dir_)
-    num_test = len(test_names)
-
-    # get data permutation
-    order = [int(test_names[i].split("_")[1]) for i in range(num_test)]
-    p = np.argsort(order)
-    n_channel = 3
-    img_size = 608
-    tensor = torch.zeros(50, n_channel, img_size, img_size, dtype=torch.uint8)
-    for i, filename in enumerate(test_names):
-        tensor[i] = tv.io.read_image(os.path.join(test_dir, test_names[i], test_names[i]) + ".png")
-
     return tensor
 
 
