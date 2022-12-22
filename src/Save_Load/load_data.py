@@ -21,8 +21,6 @@ class Inter(Dataset):
         ls_labels = torch.split(labels, 1, dim=0)
         for i in range(N):
             self. data.append((torch.reshape(ls_tensor_[i], (1, 400, 400)), torch.reshape(ls_labels[i], (1, 400, 400))))
-        #print("Size or inter dataset : ", len(self.data))
-        #print("\t - Shape of element of dataset : ", self.data[0][0].shape)
 
     def __len__(self):
         return len(self.data)
@@ -32,20 +30,11 @@ class Inter(Dataset):
 
 
 class Roads(Dataset):
-    """
-    Roads is a dataset class for road segmentation datasets
-    """
+
+    #Roads is a dataset class for road segmentation datasets
+
     # mapping between label class names and indices
     def __init__(self, split='train', img_size=400, frac_data=1.0):
-    """
-    Args :
-        split : string
-            Specify which dataset to load (test, train, intermediary)
-        img_size : int
-            Specify the size of the images to load
-        frac_data : float
-            Allow to load only a fraction of the dataset. Usefull for quick model computation or for debugging
-    """
         # prepare data
         self.img_size = img_size
         # get images with correct index according to dataset split
@@ -62,7 +51,6 @@ class Roads(Dataset):
             self.data = []
             for i in range(label.shape[0]):
                 self.data.append((obs[i, :], label[i, :]))
-                #print(f"size of element {i} : {obs[i, :].shape}")
 
         if split == 'test':
             input_dir_test = "Data/test_set_images_preprocessed"
@@ -76,9 +64,11 @@ class Roads(Dataset):
         if split == 'inter_train':
             input_dir_inter = "Results/temp"
             input_dir_label = "Data/training_processed/groundtruth"
+
             # Load data from files:
             inter = load_data(input_dir_inter, img_size, split)
             label = load_data(input_dir_label, img_size, 'train', frac_data)
+
             # Label to binary, unique channel
             label = label[:, 1] > 0
             label = label[:, None, :, :]  # Ajoute la dim C = 1

@@ -3,7 +3,8 @@
 
 # Import libraries
 from get_prediction import *
-useCUNet = False
+
+useCUNet = False     # set to True to run the CUNet model
 if useCUNet:
     from src.training_CUNet import *
 else:
@@ -48,13 +49,3 @@ get_prediction(model)
 filename_model = f"Predictions/model.pth"
 torch.save(model, filename_model)
 
-
-# ===== LOAD MODEL + PREDICTION =====
-"""try_saved_model = False
-if try_saved_model:
-    filename_model = "Predictions/model.pth"
-
-    model = torch.load(filename_model)
-    model.eval()
-
-    get_prediction(model)"""

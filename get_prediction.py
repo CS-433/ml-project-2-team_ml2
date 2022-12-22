@@ -18,6 +18,7 @@ def get_dataloaders(split, frac_data, shuffle=True):
                              pin_memory=False)
     return data_dataset, data_loader
 
+# Evaluate the model on the test-set and creating the submission file 'final_submission.csv'
 def get_prediction(model):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     test_dataset, test_loader = get_dataloaders("test", frac_data=1, shuffle=False)
@@ -57,10 +58,7 @@ def get_prediction(model):
 
 
 if __name__ == '__main__':
-    #model = UNet(3, 1)
-    #model = ResUnet(channel=3)
     model = torch.load('Predictions/model.pth')
-    #model.load_state_dict(torch.load('../Predictions/model.pth'))
     model.eval()
     print("Getting predictions...")
     get_prediction(model)

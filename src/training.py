@@ -13,14 +13,12 @@ def get_dataloaders(split, frac_data, shuffle=True):
     data_dataset = Roads(split=split, frac_data=frac_data)
     # data loader
     data_loader = DataLoader(data_dataset,
-                             batch_size=4,
+                             batch_size=3,
                              shuffle=shuffle,
                              num_workers=0,
                              pin_memory=False)
     return data_dataset, data_loader
 
-
-# Initialize neural network
 
 # Training of the model by iterating on the epochs
 def train_epoch(model, optimizer, scheduler, criterion, train_loader, epoch, device):
@@ -83,8 +81,6 @@ def validate(model, device, val_loader, criterion, SaveResults=True):
                 outputs = torch.cat((outputs, output.cpu()), dim=0)
             output = output.flatten().float()  # [batch*200*200]
             target = target.flatten().float()  # [batch*200*200]
-            '''print(output.shape)
-            print(target.shape)'''
             test_loss += criterion(output, target)
 
             # predictions = output.argmax(1).cpu().detach().numpy()
@@ -156,5 +152,3 @@ def run_training(model_factory, num_epochs, optimizer_kwargs, device="cuda", fra
         val_acc_history.append(val_acc)
 
     return train_acc_history, val_acc_history, model
-
-

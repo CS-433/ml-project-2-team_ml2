@@ -1,3 +1,0 @@
-pip install tensorflow==1.15
-pip install matplotlib
-pip install -U albumentations
