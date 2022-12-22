@@ -32,9 +32,20 @@ class Inter(Dataset):
 
 
 class Roads(Dataset):
+    """
+    Roads is a dataset class for road segmentation datasets
+    """
     # mapping between label class names and indices
     def __init__(self, split='train', img_size=400, frac_data=1.0):
-
+    """
+    Args :
+        split : string
+            Specify which dataset to load (test, train, intermediary)
+        img_size : int
+            Specify the size of the images to load
+        frac_data : float
+            Allow to load only a fraction of the dataset. Usefull for quick model computation or for debugging
+    """
         # prepare data
         self.img_size = img_size
         # get images with correct index according to dataset split
@@ -107,8 +118,7 @@ class Roads(Dataset):
 
 def load_data(input_dir, img_size=400, split='train', frac_data=1.0):
     """
-    For the observation :
-        Convert all the images from the directory into a tensor of size (N, C, H, W)
+    Convert all the images from the directory into a tensor of size (N, C, H, W)
 
     Returns the tensor
 
@@ -118,6 +128,10 @@ def load_data(input_dir, img_size=400, split='train', frac_data=1.0):
         path of directory containing images
     img_size : int
         size of the border of the image (assumed squared)
+    split : string
+        Specify which dataset to load (test, val, train, intermediary datasetes)
+    frac_data : float
+        Allow to load only a fraction of the dataset. Usefull for quick model computation or for debugging
 
     Returns
     -------
@@ -153,7 +167,7 @@ def load_data(input_dir, img_size=400, split='train', frac_data=1.0):
 
 def load_test_data(rootdir, img_size=400):
     """
-    Returns a tensor of images of size ( 4N x C x H x W) from the dir test_set_images_preprocessed
+    Returns a tensor of images of size ( 4N x C x H x W) from the rootdir "test_set_images_preprocessed"
 
     with H and W = 400
                 C = 3
@@ -181,7 +195,24 @@ def load_test_data(rootdir, img_size=400):
     return test_tensor
 
 
-def fuse_four_corners_labels(four_corners_labels, in_size=400, out_size=608, n_channel=1):
+def fuse_four_corners_labels(four_corners_labels):
+    """
+    With a tensor containing 4 different parts of each test labels (up_left, up_right, down_left, down_right)
+    in this specific order (1_up_left, 1_up_right, 1_down_left, 1_down_right, 2_up_left, 2_up_right,...)
+
+    It reconstructs the 608x608 label with the four corner labels of 400x400 pixels. The duplicate parts are replaced
+    the last part added in the reconstruction.
+
+    Args:
+        four_corners_labels : pytorch Tensor
+            the tensor containing the four parts of each images
+
+    Returns the reconstructed label of 608x608 pixels
+
+    """
+    in_size = 400
+    out_size = 608
+    n_channel = 1
     assert out_size <= 2 * in_size
 
     n_corners = four_corners_labels.size(dim=0)
