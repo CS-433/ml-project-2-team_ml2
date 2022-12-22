@@ -14,8 +14,11 @@ by Laurent Gürtler, Anthony Ducret and Swann Destouches
 	2.1 For the UNet or the ResUNet, simply precise the model name in the run.py file
 	2.2 For the CUNet, the flag 'useCUNet' must be set to 'True' at the beginning of the file. the model choice in the hyperparameters will not be taken into account
 3. Preprocess
+	3.1 
 4. Submission
-	4.1 the file 'get_prediction.py' will 
+	4.1 the file 'get_prediction.py' from the folder 'src/Submission' apply the model on the test set and create the submission file for AICrowd
+	4.2 The model is saved in the directory 'Predictions' and the output of the model on the tests set are saved in the sub-directory 'Predictions/images'
+	4.3 The csv file containing the submission to AICrowd is saved in the directory 'Submission' under the name 'final_submission.csv'
 
 ===== ARCHITECTURE =====
 ./
