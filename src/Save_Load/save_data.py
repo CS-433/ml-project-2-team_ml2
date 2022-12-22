@@ -6,7 +6,10 @@ import torchvision as tv
 
 def save_data(tensor, output_dir, target=True):
     """
-    Saves the tensor as png files in the output_dir
+    Saves the tensor of size (N,C,W,H) as png files in the output_dir
+    N : n images
+    C : c channels
+    WxH : number of pixels
     """
     tensor = tensor.float()
     for i, t in enumerate(tensor):

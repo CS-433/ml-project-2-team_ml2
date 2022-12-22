@@ -3,6 +3,8 @@
 """
 Preprocess the training data (obs and labels) with data augmentation (flip, rotation, ...) and normalization. Saves
 the processed data into directory Data/training_processed/
+
+It also normalize the test data in the same way it's applied to the training data.
 """
 
 # Import necessary libraries
@@ -88,7 +90,7 @@ save_data(obs, output_dir_obs)
 save_data(label, output_dir_label)
 
 
-# Preprocess test_images :
+# Normalize test_images :
 
 input_dir_test = "../../Data/test_set_images/"
 output_dir_test = "../../Data/test_set_images_preprocessed/"
