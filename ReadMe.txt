@@ -15,6 +15,7 @@ by Laurent Gürtler, Anthony Ducret and Swann Destouches
 	2.2 For the CUNet, the flag 'useCUNet' must be set to 'True' at the beginning of the file. the model choice in the hyperparameters will not be taken into account
 3. Preprocess
 4. Submission
+	4.1 the file 'get_prediction.py' will 
 
 ===== ARCHITECTURE =====
 ./
@@ -36,11 +37,9 @@ by Laurent Gürtler, Anthony Ducret and Swann Destouches
 	src/
 		Modeles/
 			MDUNet.py
-			Net.py ??????????????????????????????
 			ResUNet.py
 			UNet.py
 			UNet_parts.py
-			UNet_old.py ?????????????????????????
 		Preprocess/
 			preprocess.py
 		Save_Load/
@@ -51,7 +50,8 @@ by Laurent Gürtler, Anthony Ducret and Swann Destouches
 			submission_to_mask.py
 		training.py
 		trianing_CUNet.py
-	Submissions/
+	Submissions/	
+		final_submission.csv
 	run.py
-	final_submission.csv ???????????????????????
+
 	

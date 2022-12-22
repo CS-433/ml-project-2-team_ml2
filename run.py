@@ -2,6 +2,7 @@
 
 
 # Import libraries
+from get_prediction import *
 useCUNet = False
 if useCUNet:
     from src.training_CUNet import *
@@ -19,9 +20,9 @@ else:
 # ===== TRAINING NEURAL NETWORK =====
 torch.cuda.empty_cache()
 image_size = 400
-model = 'resunet'  # Choose between 'unet' and 'resunet'
-num_epochs = 1
-frac_data = 0.05
+model = 'unet'  # Choose between 'unet' and 'resunet'
+num_epochs = 100
+frac_data = 1.0
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 optimizer_kwargs = dict(
@@ -49,11 +50,11 @@ torch.save(model, filename_model)
 
 
 # ===== LOAD MODEL + PREDICTION =====
-try_saved_model = False
+"""try_saved_model = False
 if try_saved_model:
     filename_model = "Predictions/model.pth"
 
     model = torch.load(filename_model)
     model.eval()
 
-    get_prediction(model)
+    get_prediction(model)"""

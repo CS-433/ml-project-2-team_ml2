@@ -36,17 +36,17 @@ rot_obs_90 = tv.transforms.functional.rotate(obs, 90)
 rot_obs_180 = tv.transforms.functional.rotate(obs, 180)
 rot_obs_270 = tv.transforms.functional.rotate(obs, 270)
 obs = torch.cat((obs, rot_obs_90, rot_obs_180, rot_obs_270))
-rot_obs_45 = tv.transforms.functional.rotate(obs, 45, fill=0)
-obs = torch.cat((obs, rot_obs_45))
+#rot_obs_45 = tv.transforms.functional.rotate(obs, 45, fill=0)
+#obs = torch.cat((obs, rot_obs_45))
 
 rot_label_90 = tv.transforms.functional.rotate(label, 90)
 rot_label_180 = tv.transforms.functional.rotate(label, 180)
 rot_label_270 = tv.transforms.functional.rotate(label, 270)
 label = torch.cat((label, rot_label_90, rot_label_180, rot_label_270))
-rot_label_45 = tv.transforms.functional.rotate(label, 45, fill=0)
-label = torch.cat((label, rot_label_45))
+#rot_label_45 = tv.transforms.functional.rotate(label, 45, fill=0)
+#label = torch.cat((label, rot_label_45))
 
-
+num_inputs = obs.shape[0]
 
 # Change type
 obs = obs.to(dtype=torch.float)
@@ -59,7 +59,7 @@ if image_standardization:
     mean_obs = obs.mean(dim=(2, 3), dtype=torch.float)
     sd_obs = obs.std(dim=(2, 3), unbiased=True)
 
-    for i in range(1600):
+    for i in range(num_inputs):
         for j in range(3):
             mean = mean_obs[i, j]
             std = sd_obs[i, j]
