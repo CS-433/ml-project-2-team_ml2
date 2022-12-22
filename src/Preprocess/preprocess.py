@@ -67,9 +67,6 @@ if image_standardization:
             std = sd_obs[i, j]
             obs[i, j] = (obs[i, j] - mean) / std
 
-    # mean_obs = obs.mean(dim=(2, 3), dtype=torch.float) ALL 0 -->YES
-    # sd_obs = obs.std(dim=(2, 3), unbiased=True)  ALL 1 --> YES
-
 # Standardization through all images
 if all_standardization:
     mean_obs = obs.mean(dim=(0), dtype=torch.float)
